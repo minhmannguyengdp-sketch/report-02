@@ -89,6 +89,19 @@
             <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
           </label>
           <div id="sheetStatus" class="sheet-status">Dán link, app tự lưu.</div>
+
+          <details class="drive-options">
+            <summary>Lưu file báo cáo trong Drive</summary>
+            <label class="mini-switch">
+              <input type="checkbox" id="createDriveFile" />
+              <span>Tạo Google Doc khi gửi Sheet</span>
+            </label>
+            <label class="mini-field drive-folder-field">
+              <span>Drive Folder ID cố định</span>
+              <input type="text" id="driveFolderId" placeholder="Dán ID thư mục Drive" autocomplete="off" />
+            </label>
+          </details>
+
           <div class="sheet-buttons">
             <button id="saveSheetBtn" type="button">Lưu</button>
             <button id="openSheetApiBtn" type="button">Mở link</button>
