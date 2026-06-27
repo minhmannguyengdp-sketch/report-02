@@ -1,17 +1,17 @@
 {
-  "name": "Tea Survey Report",
-  "short_name": "Tea Report",
-  "description": "PWA báo cáo khảo sát thị trường ngành trà sữa, test trà và theo dõi khách hàng.",
+  "name": "Bepi Field Report",
+  "short_name": "Bepi Report",
+  "description": "PWA bao cao khao sat thi truong tra sua.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#eef7f4",
-  "theme_color": "#0f766e",
+  "background_color": "#f4f7f5",
+  "theme_color": "#0a6b5f",
   "orientation": "portrait-primary",
   "lang": "vi-VN",
   "icons": [
     {
-      "src": "icons/icon.svg",
+      "src": "icons/bepi-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
