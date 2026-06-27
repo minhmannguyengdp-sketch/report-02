@@ -1,11 +1,12 @@
-const CACHE_NAME = 'tea-survey-report-v3';
+const CACHE_NAME = 'bepi-field-report-v4';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.webmanifest',
-  './icons/icon.svg'
+  './icons/icon.svg',
+  './icons/bepi-logo.svg'
 ];
 
 self.addEventListener('install', (event) => {
