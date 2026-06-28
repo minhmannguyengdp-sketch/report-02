@@ -1,55 +1,12 @@
-function attachStyles() {
-  if (!document.querySelector('link[data-ui-polish]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'src/polish.css';
-    link.dataset.uiPolish = 'true';
-    document.head.appendChild(link);
-  }
-  if (!document.querySelector('style[data-test-fixes]')) {
-    const style = document.createElement('style');
-    style.dataset.testFixes = 'true';
-    style.textContent = '.hero{display:none}.result-line{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin-top:8px;padding:9px 10px;border:1px solid #dce9e6;border-radius:12px;background:#fbfffd}.result-line span{font-weight:750}.result-line b{font-size:12px;color:#007866}.result-line small{grid-column:1/-1;color:#63727c}';
-    document.head.appendChild(style);
-  }
+function addCss(){
+  if(!document.querySelector('link[data-ui-polish]')){const l=document.createElement('link');l.rel='stylesheet';l.href='src/polish.css';l.dataset.uiPolish='1';document.head.appendChild(l)}
+  let s=document.querySelector('style[data-test-fixes]');
+  if(!s){s=document.createElement('style');s.dataset.testFixes='1';document.head.appendChild(s)}
+  s.textContent='.hero{display:none!important}.tabs{display:none!important}.result-line{display:inline-flex!important;width:auto!important;align-items:center!important;gap:4px!important;margin:4px 4px 0 0!important;padding:3px 7px!important;border:1px solid #dce8e5!important;border-radius:999px!important;background:#fbfffd!important}.result-line div{display:contents!important}.result-line span{font-size:11px!important;font-weight:650!important}.result-line b{font-size:11px!important;color:#007866!important;white-space:nowrap!important}.result-line small{display:inline!important;font-size:10px!important;margin-left:2px!important}.modal .line{padding:8px 10px!important;gap:2px!important}.modal .line>b{font-size:14px!important}.modal .line>small{font-size:11px!important}.modal .total{display:none!important}';
 }
-
-function focusTestFirstShell() {
-  const title = document.querySelector('.hero h1');
-  const desc = document.querySelector('.hero p');
-  if (title) title.textContent = 'Test sản phẩm';
-  if (desc) desc.textContent = 'Tạo file test tổng, nhập đúng sản phẩm cần test rồi qua Dữ liệu để thêm khách.';
-
-  document.querySelectorAll('.card').forEach((card) => {
-    const text = card.textContent || '';
-    if (text.includes('File test') || text.includes('Test sản phẩm')) {
-      card.removeAttribute('data-open');
-      card.setAttribute('data-open-test', '');
-      const titleNode = card.querySelector('b');
-      const small = card.querySelector('small');
-      const cta = card.querySelector('em');
-      if (titleNode) titleNode.textContent = 'File test tổng';
-      if (small) small.textContent = 'Nhập thủ công sản phẩm cần test. Không lấy nguồn Bếp Sỉ.';
-      if (cta) cta.textContent = 'Tạo file test';
-    } else {
-      card.classList.add('is-hidden');
-    }
-  });
-
-  document.querySelectorAll('[data-page="ai"]').forEach((el) => {
-    if (el.matches('button')) el.classList.add('is-hidden');
-  });
-
-  const dataTitle = document.querySelector('[data-page="data"] h1');
-  if (dataTitle) dataTitle.textContent = 'Dữ liệu test';
-
-  const tabs = document.querySelector('.tabs');
-  if (tabs) tabs.classList.add('is-hidden');
-
-  const warn = document.querySelector('.warn');
-  if (warn) warn.textContent = 'Giai đoạn này tối ưu riêng Test. Supabase giữ tạm, chưa làm lại schema.';
+function focus(){
+  document.querySelectorAll('.card').forEach(c=>{const t=c.textContent||'';if(t.includes('File test')||t.includes('Test sản phẩm')){c.removeAttribute('data-open');c.setAttribute('data-open-test','');let b=c.querySelector('b'),sm=c.querySelector('small'),e=c.querySelector('em');if(b)b.textContent='File test tổng';if(sm)sm.textContent='Nhập thủ công sản phẩm cần test. Không lấy nguồn Bếp Sỉ.';if(e)e.textContent='Tạo file test'}else c.classList.add('is-hidden')});
+  document.querySelectorAll('[data-page="ai"]').forEach(el=>{if(el.matches('button'))el.classList.add('is-hidden')});
+  let h=document.querySelector('[data-page="data"] h1');if(h)h.textContent='Dữ liệu test';let w=document.querySelector('.warn');if(w)w.textContent='Local DB là cache. Supabase dùng để đồng bộ nhiều thiết bị.';
 }
-
-attachStyles();
-window.addEventListener('DOMContentLoaded', focusTestFirstShell);
-setTimeout(focusTestFirstShell, 300);
+addCss();window.addEventListener('DOMContentLoaded',focus);setTimeout(focus,300);
