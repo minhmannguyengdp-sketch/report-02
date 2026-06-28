@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Bépi Report" />
-    <meta name="description" content="PWA báo cáo khảo sát thị trường trà sữa, lưu DB Supabase và xuất file." />
+    <meta name="description" content="PWA báo cáo khảo sát thị trường trà sữa, lưu Supabase DB và xuất file." />
     <title>Bépi Field Report</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/bepi-logo.svg" type="image/svg+xml" />
@@ -210,73 +210,37 @@
             <div class="mobile-card-head">
               <div>
                 <span>Admin</span>
-                <h2>Cài đặt hệ thống</h2>
-                <small class="settings-hint">Ưu tiên Supabase. Sheet chỉ giữ lại để dự phòng.</small>
+                <h2>Cài đặt Supabase</h2>
+                <small class="settings-hint">DB là nguồn dữ liệu chính của app.</small>
               </div>
               <em>04</em>
             </div>
-            <p class="admin-note">Dữ liệu chính sẽ lưu vào Supabase DB. File CSV/TXT có thể tải về điện thoại và upload vào Storage.</p>
+            <p class="admin-note">Báo cáo lưu vào Supabase DB. File TXT/CSV tải về điện thoại và có thể upload vào Storage.</p>
           </section>
 
-          <section class="mobile-card sheet-card" id="supabaseSection">
+          <section class="mobile-card db-card" id="supabaseSection">
             <div class="mobile-card-head">
               <div>
                 <span>Supabase</span>
                 <h2>Kết nối DB</h2>
-                <small class="settings-hint">Dán Project URL và publishable/anon key.</small>
+                <small class="settings-hint">Chỉ dùng Project URL và publishable/anon key.</small>
               </div>
               <em>DB</em>
             </div>
 
-            <label class="mini-field sheet-url-field">
+            <label class="mini-field db-url-field">
               <span>Supabase Project URL</span>
               <input type="url" id="supabaseUrl" placeholder="https://xxxxx.supabase.co" autocomplete="off" />
             </label>
-            <label class="mini-field sheet-url-field">
-              <span>Supabase anon / publishable key</span>
+            <label class="mini-field db-key-field">
+              <span>Supabase publishable / anon key</span>
               <input type="password" id="supabaseAnonKey" placeholder="sb_publishable_... hoặc anon public key" autocomplete="off" />
             </label>
             <div id="supabaseStatus" class="sheet-status">Dán URL/key rồi bấm lưu.</div>
-            <div class="sheet-buttons">
+            <div class="sheet-buttons db-buttons">
               <button id="saveSupabaseBtn" type="button">Lưu DB</button>
               <button id="testSupabaseBtn" type="button" class="main-action">Test DB</button>
               <button id="syncAllSupabaseBtn" type="button">Đẩy hết DB</button>
-            </div>
-          </section>
-
-          <section class="mobile-card sheet-card" id="sheetSection">
-            <div class="mobile-card-head">
-              <div>
-                <span>Google Sheet cũ</span>
-                <h2>Dự phòng</h2>
-                <small class="settings-hint">Chỉ dùng nếu vẫn cần Apps Script.</small>
-              </div>
-              <em>A1</em>
-            </div>
-
-            <label class="mini-field sheet-url-field">
-              <span>Apps Script URL /exec</span>
-              <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
-            </label>
-            <div id="sheetStatus" class="sheet-status">Dán link, app tự lưu.</div>
-
-            <details class="drive-options">
-              <summary>Lưu file báo cáo trong Drive</summary>
-              <label class="mini-switch">
-                <input type="checkbox" id="createDriveFile" />
-                <span>Tạo Google Doc khi gửi Sheet</span>
-              </label>
-              <label class="mini-field drive-folder-field">
-                <span>Drive Folder ID cố định</span>
-                <input type="text" id="driveFolderId" placeholder="Dán ID thư mục Drive" autocomplete="off" />
-              </label>
-            </details>
-
-            <div class="sheet-buttons">
-              <button id="saveSheetBtn" type="button">Lưu</button>
-              <button id="openSheetApiBtn" type="button">Mở link</button>
-              <button id="testSheetBtn" type="button" class="main-action">Gửi test</button>
-              <button id="syncAllReportsBtn" type="button">Đồng bộ hết</button>
             </div>
           </section>
 
