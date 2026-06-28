@@ -9,14 +9,15 @@
   bottom: 0;
   z-index: 140;
   width: min(430px, 100vw);
-  max-height: 88dvh;
+  max-height: min(88dvh, calc(var(--vvh, 100vh) - 12px));
   transform: translateX(-50%);
   margin: 0;
   padding: 0;
   border-radius: 26px 26px 0 0;
   background: #fff;
   box-shadow: 0 -20px 60px rgba(17, 36, 32, .28);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -56,16 +57,16 @@
 }
 
 .customer-form {
-  padding: 12px 12px calc(96px + var(--safe-bottom)) !important;
+  padding: 12px 12px calc(150px + var(--safe-bottom)) !important;
 }
 
 .sticky-save {
-  position: fixed !important;
-  left: 50%;
+  position: sticky !important;
+  left: auto;
   bottom: calc(10px + var(--safe-bottom)) !important;
   z-index: 160;
-  width: min(406px, calc(100vw - 24px));
-  transform: translateX(-50%);
+  width: 100%;
+  transform: none;
   padding: 8px !important;
   border: 1px solid rgba(255, 255, 255, .9);
   border-radius: 999px;
@@ -80,7 +81,7 @@
 }
 
 .popup-open {
-  overflow: hidden;
+  overflow: auto !important;
 }
 
 .tea-tests {
