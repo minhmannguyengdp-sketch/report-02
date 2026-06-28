@@ -1,0 +1,116 @@
+:root {
+  --nav-height: 62px;
+  --nav-gap: 10px;
+  --nav-bottom: calc(10px + var(--safe-bottom));
+  --nav-reserve: calc(var(--nav-height) + 58px + var(--safe-bottom));
+}
+
+html,
+body {
+  overflow-x: hidden !important;
+}
+
+.mobile-app {
+  padding-bottom: var(--nav-reserve) !important;
+}
+
+.app-page {
+  padding-bottom: var(--nav-reserve) !important;
+}
+
+.mobile-tabs,
+.keyboard-open .mobile-tabs,
+.popup-open .mobile-tabs {
+  position: fixed !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: var(--nav-bottom) !important;
+  z-index: 320 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  width: min(414px, calc(100vw - 18px)) !important;
+  min-height: var(--nav-height) !important;
+  transform: translate3d(-50%, 0, 0) !important;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(-50%, 0, 0) !important;
+  -webkit-backface-visibility: hidden;
+}
+
+.mobile-tabs a {
+  min-height: 44px !important;
+  touch-action: manipulation;
+}
+
+.editor-card[open] {
+  bottom: calc(var(--nav-height) + 18px + var(--safe-bottom)) !important;
+  max-height: min(78dvh, calc(var(--vvh, 100vh) - var(--nav-height) - 28px - var(--safe-bottom))) !important;
+  border-radius: 26px !important;
+}
+
+.popup-open .fab,
+.keyboard-open .fab {
+  display: none !important;
+}
+
+.page-createSection #reportForm > .main-action {
+  bottom: calc(var(--nav-height) + 24px + var(--safe-bottom)) !important;
+  z-index: 300 !important;
+}
+
+.keyboard-open.page-createSection #reportForm > .main-action {
+  position: static !important;
+  width: 100% !important;
+  transform: none !important;
+}
+
+.toast {
+  bottom: calc(var(--nav-height) + 84px + var(--safe-bottom)) !important;
+  z-index: 340 !important;
+}
+
+.db-card:before {
+  background: #10b981 !important;
+}
+
+.db-card .db-url-field,
+.db-card .db-key-field,
+.db-card .sheet-status,
+.db-card .db-buttons {
+  display: grid !important;
+}
+
+.db-buttons {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.db-buttons button {
+  min-height: 42px;
+}
+
+.db-buttons button:nth-child(1) {
+  background: linear-gradient(180deg, #fff, var(--green-soft));
+  color: #047857;
+}
+
+.db-buttons button:nth-child(3) {
+  background: linear-gradient(180deg, #fff, var(--amber-soft));
+  color: #9a3412;
+}
+
+@media (max-width: 380px) {
+  .mobile-tabs {
+    width: calc(100vw - 12px) !important;
+    padding: 6px !important;
+    gap: 4px !important;
+  }
+
+  .mobile-tabs a {
+    font-size: 11px !important;
+  }
+
+  .db-buttons {
+    grid-template-columns: 1fr;
+  }
+}
