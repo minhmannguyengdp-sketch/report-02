@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="mobile-polish.css" />
     <link rel="stylesheet" href="popup-ui.css" />
   </head>
-  <body>
+  <body class="page-createSection">
     <div class="mobile-app">
       <header class="app-bar">
         <img class="app-logo" src="icons/bepi-logo.svg" alt="Bépi" />
@@ -29,221 +29,252 @@
       </header>
 
       <main class="screen">
-        <section class="hero-mobile">
-          <div>
-            <span>Hôm nay</span>
-            <h1>Ghi nhanh khách, đẩy Sheet.</h1>
-          </div>
-          <div id="homeStats" class="hero-metrics">
-            <b>0</b><small>báo cáo</small>
-            <b>0</b><small>khách</small>
-          </div>
-        </section>
-
-        <section class="mobile-card card-create" id="createSection">
-          <div class="mobile-card-head">
+        <section class="app-page page-create is-active" id="createSection" aria-label="Tạo báo cáo">
+          <section class="hero-mobile">
             <div>
-              <span>Báo cáo</span>
-              <h2>Tạo mới</h2>
+              <span>Hôm nay</span>
+              <h1>Ghi nhanh khách, đẩy Sheet.</h1>
             </div>
-            <em>01</em>
-          </div>
-
-          <form id="reportForm" class="compact-form">
-            <div class="compact-grid two">
-              <label class="mini-field">
-                <span>Ngày</span>
-                <input type="date" id="reportDate" required />
-              </label>
-              <label class="mini-field">
-                <span>Sales</span>
-                <input type="text" id="reportSales" placeholder="A Tân" value="A Tân" />
-              </label>
+            <div id="homeStats" class="hero-metrics">
+              <b>0</b><small>báo cáo</small>
+              <b>0</b><small>khách</small>
             </div>
-            <label class="mini-field">
-              <span>Loại báo cáo</span>
-              <select id="reportKind">
-                <option value="Test">Test</option>
-                <option value="Thị trường" selected>Thị trường</option>
-                <option value="Lên đơn hàng">Lên đơn hàng</option>
-              </select>
-            </label>
-            <label class="mini-field">
-              <span>Thị trường</span>
-              <input type="text" id="reportMarket" placeholder="VD: Chợ Gạo" required />
-            </label>
-            <label class="mini-field">
-              <span>Ghi chú</span>
-              <input type="text" id="reportNote" placeholder="VD: test trà ONA tuần này" />
-            </label>
-            <button type="submit" class="main-action">Tạo báo cáo</button>
-          </form>
+          </section>
 
-          <div class="split-actions">
-            <button id="seedBtn" type="button">Nạp mẫu</button>
-            <button id="clearBtn" type="button" class="danger">Xóa máy</button>
-          </div>
-        </section>
-
-        <section class="mobile-card sheet-card" id="sheetSection">
-          <div class="mobile-card-head">
-            <div>
-              <span>Google Sheet</span>
-              <h2>Kết nối</h2>
-              <small class="settings-hint">Chỉ mở khi cần cấu hình.</small>
-            </div>
-            <em>02</em>
-          </div>
-
-          <label class="mini-field sheet-url-field">
-            <span>Apps Script URL /exec</span>
-            <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
-          </label>
-          <div id="sheetStatus" class="sheet-status">Dán link, app tự lưu.</div>
-
-          <details class="drive-options">
-            <summary>Lưu file báo cáo trong Drive</summary>
-            <label class="mini-switch">
-              <input type="checkbox" id="createDriveFile" />
-              <span>Tạo Google Doc khi gửi Sheet</span>
-            </label>
-            <label class="mini-field drive-folder-field">
-              <span>Drive Folder ID cố định</span>
-              <input type="text" id="driveFolderId" placeholder="Dán ID thư mục Drive" autocomplete="off" />
-            </label>
-          </details>
-
-          <div class="sheet-buttons">
-            <button id="saveSheetBtn" type="button">Lưu</button>
-            <button id="openSheetApiBtn" type="button">Mở link</button>
-            <button id="testSheetBtn" type="button" class="main-action">Gửi test</button>
-            <button id="syncAllReportsBtn" type="button">Đồng bộ hết</button>
-          </div>
-        </section>
-
-        <section class="mobile-card card-reports" id="reportsSection">
-          <div class="mobile-card-head">
-            <div>
-              <span>Kho báo cáo</span>
-              <h2>Danh sách</h2>
-            </div>
-            <em id="reportCount">0</em>
-          </div>
-          <div id="reportList" class="report-list"></div>
-        </section>
-
-        <section class="workspace" id="workspaceSection">
-          <div id="emptyState" class="empty-state">
-            <div class="empty-logo">B</div>
-            <h2>Chưa chọn báo cáo</h2>
-            <p>Tạo hoặc chọn báo cáo để thêm khách.</p>
-          </div>
-
-          <div id="reportDetail" hidden>
-            <section class="active-report-card">
+          <section class="mobile-card card-create">
+            <div class="mobile-card-head">
               <div>
-                <span id="activeReportDate">--</span>
-                <h2 id="activeReportTitle">--</h2>
-                <p id="activeReportMeta"></p>
-                <em id="activeSyncStatus">Chưa đồng bộ</em>
+                <span>Báo cáo</span>
+                <h2>Tạo mới</h2>
               </div>
-              <div class="report-actions">
-                <button id="syncActiveReportBtn" type="button" class="main-action">Đẩy Sheet</button>
-                <button id="copySummaryBtn" type="button">Copy</button>
-                <button id="exportCsvBtn" type="button">CSV</button>
-              </div>
-            </section>
-
-            <div id="statsGrid" class="stats-strip"></div>
-
-            <div class="mobile-filter">
-              <div class="search-pill">
-                <span>⌕</span>
-                <input type="search" id="searchInput" placeholder="Tìm khách..." />
-              </div>
-              <div class="filter-row">
-                <select id="productFilter" aria-label="Lọc sản phẩm"></select>
-                <select id="actionFilter" aria-label="Lọc trạng thái">
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="ok">OK / thích</option>
-                  <option value="interested">Quan tâm</option>
-                  <option value="sample">Cần mẫu</option>
-                  <option value="follow">Báo sau / báo Tân</option>
-                  <option value="bad">Chưa tốt</option>
-                  <option value="pending">Chưa thử</option>
-                </select>
-              </div>
+              <em>01</em>
             </div>
 
-            <details id="customerEditor" class="mobile-card editor-card">
-              <summary id="editorTitle">Thêm khách hàng</summary>
-              <form id="customerForm" class="compact-form customer-form">
-                <input type="hidden" id="editingCustomerId" />
+            <form id="reportForm" class="compact-form">
+              <div class="compact-grid two">
                 <label class="mini-field">
-                  <span>Tên khách</span>
-                  <input type="text" id="customerName" placeholder="VD: ToTo, Hana, Châu..." required />
+                  <span>Ngày</span>
+                  <input type="date" id="reportDate" required />
                 </label>
-                <div class="compact-grid two">
-                  <label class="mini-field">
-                    <span>Khu vực</span>
-                    <input type="text" id="customerArea" placeholder="Chợ Gạo" />
-                  </label>
-                  <label class="mini-field">
-                    <span>Hẹn lại</span>
-                    <input type="date" id="followDate" />
-                  </label>
-                </div>
                 <label class="mini-field">
-                  <span>Loại SP test</span>
-                  <select id="testType">
-                    <option value="Trà ONA Test">Trà ONA Test</option>
-                    <option value="Trà sữa / topping">Trà sữa / topping</option>
-                    <option value="Thị trường chung">Thị trường chung</option>
-                    <option value="Khác">Khác</option>
+                  <span>Sales</span>
+                  <input type="text" id="reportSales" placeholder="A Tân" value="A Tân" />
+                </label>
+              </div>
+              <label class="mini-field">
+                <span>Loại báo cáo</span>
+                <select id="reportKind">
+                  <option value="Test">Test</option>
+                  <option value="Thị trường" selected>Thị trường</option>
+                  <option value="Lên đơn hàng">Lên đơn hàng</option>
+                </select>
+              </label>
+              <label class="mini-field">
+                <span>Thị trường</span>
+                <input type="text" id="reportMarket" placeholder="VD: Chợ Gạo" required />
+              </label>
+              <label class="mini-field">
+                <span>Ghi chú</span>
+                <input type="text" id="reportNote" placeholder="VD: test trà ONA tuần này" />
+              </label>
+              <button type="submit" class="main-action">Tạo báo cáo</button>
+            </form>
+          </section>
+        </section>
+
+        <section class="app-page page-reports" id="reportsSection" aria-label="Danh sách báo cáo">
+          <section class="mobile-card card-reports">
+            <div class="mobile-card-head">
+              <div>
+                <span>Kho báo cáo</span>
+                <h2>Danh sách</h2>
+              </div>
+              <em id="reportCount">0</em>
+            </div>
+            <div id="reportList" class="report-list"></div>
+          </section>
+        </section>
+
+        <section class="app-page page-workspace" id="workspaceSection" aria-label="Khách hàng">
+          <section class="workspace">
+            <div id="emptyState" class="empty-state">
+              <div class="empty-logo">B</div>
+              <h2>Chưa chọn báo cáo</h2>
+              <p>Tạo hoặc chọn báo cáo để thêm khách.</p>
+            </div>
+
+            <div id="reportDetail" hidden>
+              <section class="active-report-card">
+                <div>
+                  <span id="activeReportDate">--</span>
+                  <h2 id="activeReportTitle">--</h2>
+                  <p id="activeReportMeta"></p>
+                  <em id="activeSyncStatus">Chưa đồng bộ</em>
+                </div>
+                <div class="report-actions">
+                  <button id="syncActiveReportBtn" type="button" class="main-action">Đẩy Sheet</button>
+                  <button id="copySummaryBtn" type="button">Copy</button>
+                  <button id="exportCsvBtn" type="button">CSV</button>
+                </div>
+              </section>
+
+              <div id="statsGrid" class="stats-strip"></div>
+
+              <div class="mobile-filter">
+                <div class="search-pill">
+                  <span>⌕</span>
+                  <input type="search" id="searchInput" placeholder="Tìm khách..." />
+                </div>
+                <div class="filter-row">
+                  <select id="productFilter" aria-label="Lọc sản phẩm"></select>
+                  <select id="actionFilter" aria-label="Lọc trạng thái">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="ok">OK / thích</option>
+                    <option value="interested">Quan tâm</option>
+                    <option value="sample">Cần mẫu</option>
+                    <option value="follow">Báo sau / báo Tân</option>
+                    <option value="bad">Chưa tốt</option>
+                    <option value="pending">Chưa thử</option>
                   </select>
-                </label>
-
-                <div class="mini-section-title">
-                  <h3>Test từng sản phẩm</h3>
-                  <p>Chọn nhanh trạng thái.</p>
                 </div>
-                <div id="teaTests" class="tea-tests"></div>
+              </div>
 
-                <div class="mini-section-title">
-                  <h3>Test chung thị trường</h3>
-                  <p>Giá, vị, đối thủ, mẫu.</p>
+              <details id="customerEditor" class="mobile-card editor-card">
+                <summary id="editorTitle">Thêm khách hàng</summary>
+                <form id="customerForm" class="compact-form customer-form">
+                  <input type="hidden" id="editingCustomerId" />
+                  <label class="mini-field">
+                    <span>Tên khách</span>
+                    <input type="text" id="customerName" placeholder="VD: ToTo, Hana, Châu..." required />
+                  </label>
+                  <div class="compact-grid two">
+                    <label class="mini-field">
+                      <span>Khu vực</span>
+                      <input type="text" id="customerArea" placeholder="Chợ Gạo" />
+                    </label>
+                    <label class="mini-field">
+                      <span>Hẹn lại</span>
+                      <input type="date" id="followDate" />
+                    </label>
+                  </div>
+                  <label class="mini-field">
+                    <span>Loại SP test</span>
+                    <select id="testType">
+                      <option value="Trà ONA Test">Trà ONA Test</option>
+                      <option value="Trà sữa / topping">Trà sữa / topping</option>
+                      <option value="Thị trường chung">Thị trường chung</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                  </label>
+
+                  <div class="mini-section-title">
+                    <h3>Test từng sản phẩm</h3>
+                    <p>Chọn nhanh trạng thái.</p>
+                  </div>
+                  <div id="teaTests" class="tea-tests"></div>
+
+                  <div class="mini-section-title">
+                    <h3>Test chung thị trường</h3>
+                    <p>Giá, vị, đối thủ, mẫu.</p>
+                  </div>
+                  <div id="marketChips" class="chip-grid"></div>
+
+                  <label class="mini-field">
+                    <span>Ghi chú tổng</span>
+                    <textarea id="customerNote" rows="3" placeholder="VD: đang bán Novia, cần mẫu lớn..."></textarea>
+                  </label>
+
+                  <div class="sticky-save">
+                    <button type="submit" class="main-action">Lưu khách hàng</button>
+                    <button id="cancelEditBtn" type="button" hidden>Hủy sửa</button>
+                  </div>
+                </form>
+              </details>
+
+              <div class="section-line-title">
+                <div>
+                  <span>Chi tiết</span>
+                  <h2>Khách trong báo cáo</h2>
                 </div>
-                <div id="marketChips" class="chip-grid"></div>
+                <em id="customerCount">0 khách</em>
+              </div>
+              <div id="customerList" class="customer-list"></div>
+            </div>
+          </section>
+        </section>
 
-                <label class="mini-field">
-                  <span>Ghi chú tổng</span>
-                  <textarea id="customerNote" rows="3" placeholder="VD: đang bán Novia, cần mẫu lớn..."></textarea>
-                </label>
+        <section class="app-page page-admin" id="adminSection" aria-label="Admin">
+          <section class="mobile-card admin-card">
+            <div class="mobile-card-head">
+              <div>
+                <span>Admin</span>
+                <h2>Cài đặt hệ thống</h2>
+                <small class="settings-hint">Tách riêng khỏi màn nhập liệu cho gọn.</small>
+              </div>
+              <em>04</em>
+            </div>
+            <p class="admin-note">Mục này chỉ dùng khi cấu hình Sheet, Drive hoặc xử lý dữ liệu trên máy.</p>
+          </section>
 
-                <div class="sticky-save">
-                  <button type="submit" class="main-action">Lưu khách hàng</button>
-                  <button id="cancelEditBtn" type="button" hidden>Hủy sửa</button>
-                </div>
-              </form>
+          <section class="mobile-card sheet-card" id="sheetSection">
+            <div class="mobile-card-head">
+              <div>
+                <span>Google Sheet</span>
+                <h2>Kết nối</h2>
+                <small class="settings-hint">Dán Apps Script /exec tại đây.</small>
+              </div>
+              <em>A1</em>
+            </div>
+
+            <label class="mini-field sheet-url-field">
+              <span>Apps Script URL /exec</span>
+              <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
+            </label>
+            <div id="sheetStatus" class="sheet-status">Dán link, app tự lưu.</div>
+
+            <details class="drive-options">
+              <summary>Lưu file báo cáo trong Drive</summary>
+              <label class="mini-switch">
+                <input type="checkbox" id="createDriveFile" />
+                <span>Tạo Google Doc khi gửi Sheet</span>
+              </label>
+              <label class="mini-field drive-folder-field">
+                <span>Drive Folder ID cố định</span>
+                <input type="text" id="driveFolderId" placeholder="Dán ID thư mục Drive" autocomplete="off" />
+              </label>
             </details>
 
-            <div class="section-line-title">
-              <div>
-                <span>Chi tiết</span>
-                <h2>Khách trong báo cáo</h2>
-              </div>
-              <em id="customerCount">0 khách</em>
+            <div class="sheet-buttons">
+              <button id="saveSheetBtn" type="button">Lưu</button>
+              <button id="openSheetApiBtn" type="button">Mở link</button>
+              <button id="testSheetBtn" type="button" class="main-action">Gửi test</button>
+              <button id="syncAllReportsBtn" type="button">Đồng bộ hết</button>
             </div>
-            <div id="customerList" class="customer-list"></div>
-          </div>
+          </section>
+
+          <section class="mobile-card admin-data-card">
+            <div class="mobile-card-head">
+              <div>
+                <span>Dữ liệu máy</span>
+                <h2>Quản trị local</h2>
+                <small class="settings-hint">Nạp mẫu hoặc xóa dữ liệu lưu trên thiết bị.</small>
+              </div>
+              <em>A2</em>
+            </div>
+
+            <div class="split-actions">
+              <button id="seedBtn" type="button">Nạp mẫu</button>
+              <button id="clearBtn" type="button" class="danger">Xóa máy</button>
+            </div>
+          </section>
         </section>
       </main>
 
-      <nav class="mobile-tabs">
-        <a href="#createSection">Tạo</a>
-        <a href="#sheetSection">Sheet</a>
-        <a href="#reportsSection">Báo cáo</a>
-        <a href="#workspaceSection">Khách</a>
+      <nav class="mobile-tabs" aria-label="Điều hướng">
+        <a href="#createSection" data-page-link="createSection">Tạo</a>
+        <a href="#reportsSection" data-page-link="reportsSection">Báo cáo</a>
+        <a href="#workspaceSection" data-page-link="workspaceSection">Khách</a>
+        <a href="#adminSection" data-page-link="adminSection">Admin</a>
       </nav>
 
       <button id="quickAddBtn" type="button" class="fab">＋</button>
