@@ -1,39 +1,42 @@
 /*
   Bépi Field Report - Google Apps Script receiver.
 
+  Mục tiêu:
+  - Mỗi báo cáo trong app có 1 Google Doc cố định theo ID báo cáo.
+  - Gửi lại cùng báo cáo thì cập nhật đúng file cũ, không tạo file mới.
+  - Tạo báo cáo mới mà trùng tên thì tự thêm (1), (2), ...
+  - Có phân loại: Test / Thị trường / Lên đơn hàng.
+
   Deploy Web App:
   - Execute as: Me
   - Who has access: Anyone
   - URL phải kết thúc bằng /exec
-
-  Cách dùng dễ cho sales:
-  - Admin có thể dán DEFAULT_DRIVE_FOLDER_ID bên dưới để cố định thư mục Drive.
-  - Mỗi báo cáo mới trong app = 1 Google Doc riêng trong thư mục đó.
-  - Gửi lại cùng báo cáo = cập nhật đúng file cũ nhờ report.id, không tạo file mới.
-  - Nếu báo cáo khác bị trùng tên file, script tự thêm (1), (2), ...
 */
 
 const REPORT_SHEET_NAME = 'Báo cáo';
 const CUSTOMER_SHEET_NAME = 'Chi tiết khách hàng';
+const DOC_MAP_SHEET_NAME = '_DocMap';
+
+// Có thể dán sẵn Folder ID ở đây để sales không cần biết gì công nghệ.
+// Nếu app có gửi driveFolderId thì app sẽ ưu tiên ID từ app.
+const DEFAULT_DRIVE_FOLDER_ID = '';
+const CREATE_DRIVE_FILE_BY_DEFAULT = false;
+
 const PRODUCTS = ['Trà Đen', 'Trà Quả Mộng', 'Trà Gạo Rang', 'Trà Lài', 'Trà Olong', 'Trà Olong Sen'];
 
-// Admin có thể dán ID thư mục Drive cố định ở đây để sales không cần nhập Folder ID trong app.
-// Ví dụ URL thư mục: https://drive.google.com/drive/folders/ABC123xyz
-// thì Folder ID là: ABC123xyz
-const DEFAULT_DRIVE_FOLDER_ID = '';
-const CREATE_DRIVE_FILE_BY_DEFAULT = true;
-
 const REPORT_HEADERS = [
-  'ID báo cáo', 'Thời gian gửi', 'Ngày báo cáo', 'Thị trường / khu vực', 'Sales phụ trách',
+  'ID báo cáo', 'ID file Doc', 'Thời gian gửi', 'Loại báo cáo', 'Ngày báo cáo', 'Thị trường / khu vực', 'Sales phụ trách',
   'Ghi chú báo cáo', 'Tổng khách', 'Cần mẫu', 'Báo A Tân / báo sau', 'Cần xử lý',
-  'File báo cáo Drive', 'Tên file báo cáo', 'Tạo lúc', 'Cập nhật lúc'
+  'File báo cáo Drive', 'Tạo lúc', 'Cập nhật lúc'
 ];
 
 const CUSTOMER_HEADERS = [
-  'ID báo cáo', 'ID khách', 'Thời gian gửi', 'Ngày báo cáo', 'Thị trường / khu vực', 'Sales phụ trách',
+  'ID báo cáo', 'ID khách', 'Thời gian gửi', 'Loại báo cáo', 'Ngày báo cáo', 'Thị trường / khu vực', 'Sales phụ trách',
   'Tên khách hàng', 'Khu vực khách', 'Loại SP test', 'Hẹn báo lại', 'Test chung thị trường', 'Ghi chú tổng',
   ...PRODUCTS.flatMap((product) => [`${product} - trạng thái`, `${product} - ghi chú`])
 ];
+
+const DOC_MAP_HEADERS = ['ID báo cáo', 'ID file Doc', 'Tên file Doc', 'Link file Doc', 'Tạo lúc', 'Cập nhật lúc'];
 
 function doGet() {
   return jsonOutput({ ok: true, message: 'Bépi Field Report Sheet API đang hoạt động.' });
@@ -47,21 +50,24 @@ function doPost(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const reportSheet = ensureSheet(ss, REPORT_SHEET_NAME, REPORT_HEADERS);
     const customerSheet = ensureSheet(ss, CUSTOMER_SHEET_NAME, CUSTOMER_HEADERS);
+    const docMapSheet = ensureSheet(ss, DOC_MAP_SHEET_NAME, DOC_MAP_HEADERS);
+    docMapSheet.hideSheet();
 
-    const docResult = maybeCreateOrUpdateReportDoc(payload);
+    let docInfo = { id: '', url: '', name: '' };
+    const settings = payload.settings || {};
+    const folderId = settings.driveFolderId || DEFAULT_DRIVE_FOLDER_ID;
+    const shouldCreateDoc = Boolean(settings.createDriveFile || CREATE_DRIVE_FILE_BY_DEFAULT);
+
+    if (shouldCreateDoc && folderId) {
+      docInfo = createOrUpdateReportDoc(payload, folderId, docMapSheet);
+    }
 
     removeOldRows(reportSheet, 1, payload.report.id);
     removeOldRows(customerSheet, 1, payload.report.id);
-    appendReportRow(reportSheet, payload, docResult);
+    appendReportRow(reportSheet, payload, docInfo);
     appendCustomerRows(customerSheet, payload);
 
-    return jsonOutput({
-      ok: true,
-      message: 'Đã ghi báo cáo.',
-      reportId: payload.report.id,
-      fileUrl: docResult.url || '',
-      fileName: docResult.name || ''
-    });
+    return jsonOutput({ ok: true, message: 'Đã ghi báo cáo.', reportId: payload.report.id, doc: docInfo });
   } catch (error) {
     return jsonOutput({ ok: false, message: error.message, stack: error.stack });
   }
@@ -71,14 +77,6 @@ function parsePayload(e) {
   if (e && e.parameter && e.parameter.payload) return JSON.parse(e.parameter.payload);
   if (e && e.postData && e.postData.contents) return JSON.parse(e.postData.contents);
   return {};
-}
-
-function maybeCreateOrUpdateReportDoc(payload) {
-  const settings = payload.settings || {};
-  const folderId = settings.driveFolderId || DEFAULT_DRIVE_FOLDER_ID;
-  const shouldCreate = Boolean(folderId) && (settings.createDriveFile || CREATE_DRIVE_FILE_BY_DEFAULT);
-  if (!shouldCreate) return { url: '', name: '' };
-  return createOrUpdateReportDoc(payload, folderId);
 }
 
 function ensureSheet(ss, name, headers) {
@@ -104,12 +102,14 @@ function removeOldRows(sheet, idColumn, reportId) {
   }
 }
 
-function appendReportRow(sheet, payload, docResult) {
+function appendReportRow(sheet, payload, docInfo) {
   const r = payload.report;
   const s = r.summary || {};
   sheet.appendRow([
     r.id,
+    docInfo.id || '',
     payload.submittedAt || new Date().toISOString(),
+    r.kind || 'Thị trường',
     r.date || '',
     r.market || '',
     r.sales || '',
@@ -118,8 +118,7 @@ function appendReportRow(sheet, payload, docResult) {
     s.needSample || 0,
     s.follow || 0,
     s.bad || 0,
-    docResult.url || '',
-    docResult.name || '',
+    docInfo.url || '',
     r.createdAt || '',
     r.updatedAt || ''
   ]);
@@ -132,6 +131,7 @@ function appendCustomerRows(sheet, payload) {
       r.id,
       c.id || '',
       payload.submittedAt || new Date().toISOString(),
+      r.kind || 'Thị trường',
       r.date || '',
       r.market || '',
       r.sales || '',
@@ -151,102 +151,91 @@ function appendCustomerRows(sheet, payload) {
   if (rows.length) sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, CUSTOMER_HEADERS.length).setValues(rows);
 }
 
-function createOrUpdateReportDoc(payload, folderId) {
+function createOrUpdateReportDoc(payload, folderId, docMapSheet) {
   const r = payload.report;
-  const folder = DriveApp.getFolderById(folderId);
-  const props = PropertiesService.getDocumentProperties();
-  const propKey = `reportFileId:${r.id}`;
-  const existingFileId = props.getProperty(propKey);
-
-  let file;
+  const existing = findDocMap(docMapSheet, r.id);
   let doc;
+  let file;
 
-  if (existingFileId) {
-    try {
-      file = DriveApp.getFileById(existingFileId);
-      doc = DocumentApp.openById(existingFileId);
-    } catch (error) {
-      file = null;
-      doc = null;
-      props.deleteProperty(propKey);
-    }
-  }
-
-  if (!file || !doc) {
-    const baseName = buildReportFileBaseName(payload);
-    const uniqueName = makeUniqueFileName(folder, baseName);
+  if (existing && existing.docId) {
+    file = DriveApp.getFileById(existing.docId);
+    doc = DocumentApp.openById(existing.docId);
+    doc.getBody().clear();
+  } else {
+    const folder = DriveApp.getFolderById(folderId);
+    const baseName = buildDocBaseName(r);
+    const uniqueName = getUniqueFileName(folder, baseName);
     doc = DocumentApp.create(uniqueName);
     file = DriveApp.getFileById(doc.getId());
     file.moveTo(folder);
-    props.setProperty(propKey, file.getId());
   }
 
-  // Gửi lại cùng report thì cập nhật đúng file đã map theo report.id.
-  doc.getBody().clear();
   writeReportDoc(doc, payload);
   doc.saveAndClose();
 
-  return { url: file.getUrl(), name: file.getName(), id: file.getId() };
+  const info = { id: file.getId(), url: file.getUrl(), name: file.getName() };
+  upsertDocMap(docMapSheet, r.id, info);
+  return info;
 }
 
-function buildReportFileBaseName(payload) {
-  const r = payload.report;
-  const date = toViDateForName(r.date || '');
-  const market = safeName(r.market || 'Thị trường');
+function buildDocBaseName(r) {
+  const kind = safeName(r.kind || 'Thị trường');
+  const market = safeName(r.market || 'Chưa rõ thị trường');
   const sales = safeName(r.sales || 'Sales');
-  return `Báo cáo thị trường ${market} - ${date} - ${sales}`;
+  const date = formatDateForName(r.date || '');
+  return `Báo cáo ${kind} - ${market} - ${date} - ${sales}`;
 }
 
-function makeUniqueFileName(folder, baseName) {
+function formatDateForName(dateValue) {
+  if (!dateValue) return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy');
+  const parts = String(dateValue).split('-');
+  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return safeName(dateValue);
+}
+
+function getUniqueFileName(folder, baseName) {
   if (!folder.getFilesByName(baseName).hasNext()) return baseName;
-  let index = 1;
-  while (folder.getFilesByName(`${baseName} (${index})`).hasNext()) index += 1;
-  return `${baseName} (${index})`;
+  let i = 1;
+  while (folder.getFilesByName(`${baseName} (${i})`).hasNext()) i++;
+  return `${baseName} (${i})`;
+}
+
+function findDocMap(sheet, reportId) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return null;
+  const values = sheet.getRange(2, 1, lastRow - 1, DOC_MAP_HEADERS.length).getValues();
+  for (let i = 0; i < values.length; i++) {
+    if (String(values[i][0]) === String(reportId)) {
+      return { row: i + 2, docId: values[i][1], name: values[i][2], url: values[i][3] };
+    }
+  }
+  return null;
+}
+
+function upsertDocMap(sheet, reportId, info) {
+  const now = new Date().toISOString();
+  const existing = findDocMap(sheet, reportId);
+  if (existing) {
+    sheet.getRange(existing.row, 2, 1, 4).setValues([[info.id, info.name, info.url, now]]);
+  } else {
+    sheet.appendRow([reportId, info.id, info.name, info.url, now, now]);
+  }
 }
 
 function writeReportDoc(doc, payload) {
   const r = payload.report;
-  const summary = r.summary || {};
   const body = doc.getBody();
-
-  body.appendParagraph('BÁO CÁO THỊ TRƯỜNG').setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  body.appendParagraph(`BÁO CÁO ${String(r.kind || 'THỊ TRƯỜNG').toUpperCase()}`).setHeading(DocumentApp.ParagraphHeading.HEADING1);
   body.appendParagraph(`Ngày: ${r.date || ''}`);
+  body.appendParagraph(`Loại báo cáo: ${r.kind || 'Thị trường'}`);
   body.appendParagraph(`Thị trường: ${r.market || ''}`);
   body.appendParagraph(`Sales: ${r.sales || ''}`);
   if (r.note) body.appendParagraph(`Ghi chú: ${r.note}`);
   body.appendParagraph('');
 
-  body.appendParagraph('1. Tổng quan thị trường').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  body.appendParagraph(`Tổng khách: ${summary.totalCustomers || 0}`);
-  body.appendParagraph(`Cần mẫu: ${summary.needSample || 0}`);
-  body.appendParagraph(`Báo A Tân / báo sau: ${summary.follow || 0}`);
-  body.appendParagraph(`Cần xử lý: ${summary.bad || 0}`);
-  body.appendParagraph('');
+  const customers = payload.customers || [];
+  body.appendParagraph(`Tổng khách: ${customers.length}`).setHeading(DocumentApp.ParagraphHeading.HEADING2);
 
-  body.appendParagraph('2. Kết quả test sản phẩm').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  appendProductSummary(body, payload.customers || []);
-  body.appendParagraph('');
-
-  body.appendParagraph('3. Chi tiết khách hàng').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  appendCustomerDetails(body, payload.customers || []);
-  body.appendParagraph('');
-
-  body.appendParagraph('4. Lên đơn hàng').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  body.appendParagraph('Chưa có dữ liệu đơn hàng. Mục này sẽ dùng để nối dữ liệu từ Bépi/SOBépi sau này.');
-}
-
-function appendProductSummary(body, customers) {
-  PRODUCTS.forEach((product) => {
-    const stats = { ok: 0, interested: 0, sample: 0, follow: 0, bad: 0, retry: 0, pending: 0 };
-    customers.forEach((c) => {
-      const status = c.tests && c.tests[product] ? (c.tests[product].status || 'pending') : 'pending';
-      stats[status] = (stats[status] || 0) + 1;
-    });
-    body.appendParagraph(`${product}: OK ${stats.ok || 0}, quan tâm ${stats.interested || 0}, cần mẫu ${stats.sample || 0}, báo Tân ${stats.follow || 0}, chưa tốt ${stats.bad || 0}, thử lại ${stats.retry || 0}, chưa thử ${stats.pending || 0}`);
-  });
-}
-
-function appendCustomerDetails(body, customers) {
   customers.forEach((c, index) => {
     body.appendParagraph(`${index + 1}. ${c.name || ''}${c.area ? ' - ' + c.area : ''}`).setHeading(DocumentApp.ParagraphHeading.HEADING3);
     PRODUCTS.forEach((product) => {
@@ -259,13 +248,6 @@ function appendCustomerDetails(body, customers) {
     if (c.followDate) body.appendParagraph(`- Hẹn báo lại: ${c.followDate}`);
     if (c.note) body.appendParagraph(`- Ghi chú: ${c.note}`);
   });
-}
-
-function toViDateForName(value) {
-  if (!value) return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd-MM-yyyy');
-  const parts = String(value).split('-');
-  if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  return safeName(value);
 }
 
 function safeName(value) {
