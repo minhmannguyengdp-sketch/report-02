@@ -12,10 +12,12 @@ const svg = {
 };
 
 function addCss(){
-  if(!document.querySelector('link[data-ui-polish]')){const l=document.createElement('link');l.rel='stylesheet';l.href='src/polish.css';l.dataset.uiPolish='1';document.head.appendChild(l)}
+  const href='src/polish-stable.css?v=20260628-2';
+  document.querySelectorAll('link[data-ui-polish]').forEach(l=>{if(!l.href.includes('polish-stable.css'))l.remove()});
+  if(!document.querySelector('link[data-ui-polish]')){const l=document.createElement('link');l.rel='stylesheet';l.href=href;l.dataset.uiPolish='1';document.head.appendChild(l)}
   let s=document.querySelector('style[data-test-fixes]');
   if(!s){s=document.createElement('style');s.dataset.testFixes='1';document.head.appendChild(s)}
-  s.textContent='.hero{display:none!important}.tabs{display:none!important}.result-line{display:inline-flex!important;width:auto!important;align-items:center!important;gap:4px!important;margin:4px 4px 0 0!important;padding:3px 7px!important;border:1px solid #dce8e5!important;border-radius:999px!important;background:#fbfffd!important}.result-line div{display:contents!important}.result-line span{font-size:11px!important;font-weight:650!important}.result-line b{font-size:11px!important;color:#007866!important;white-space:nowrap!important}.result-line small{display:inline!important;font-size:10px!important;margin-left:2px!important}.modal .line{padding:8px 10px!important;gap:2px!important}.modal .line>b{font-size:14px!important}.modal .line>small{font-size:11px!important}.modal .total{display:none!important}';
+  s.textContent='.hero{display:none!important}.tabs{display:none!important}.nav [data-page="ai"]{display:none!important}.card,.nav button,.secondary,.primary,.sync-state{pointer-events:auto!important}.card *,.nav svg{pointer-events:none!important}.test-actions *,.admin-actions *,.modal *{pointer-events:auto!important}.modal .line{padding:8px 10px!important;gap:2px!important}.modal .line>b{font-size:14px!important}.modal .line>small{font-size:11px!important}.modal .total{display:none!important}';
 }
 
 function setNavButton(selector, icon, label){
