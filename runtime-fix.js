@@ -7,4 +7,5 @@ function paint(){const p=$('#dbStatusPill');if(p){p.classList.toggle('off',!onli
 async function pullProducts(){if(!online())return;const rows=await loadProducts().catch(()=>[]);if(rows.length)await putManyLocal(LOCAL_STORES.products,rows.map(r=>({...r,sync_status:'synced'})));}
 async function stats(){const s=await localStats().catch(()=>null);if(!s)return;const a=$('#localRecordCount'),b=$('#pendingSyncCount'),c=$('#errorSyncCount');if(a)a.textContent=String(s.records);if(b)b.textContent=String(s.pending);if(c)c.textContent=String(s.error);}
 document.addEventListener('click',async e=>{if(e.target.closest('#saveSupabaseBtn')||e.target.closest('#testSupabaseBtn')){e.preventDefault();e.stopImmediatePropagation();await boot();}},true);
+import('./ai-bridge.js').catch(console.warn);
 boot().catch(e=>console.warn('runtime config failed',e));
