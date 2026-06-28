@@ -14,6 +14,13 @@
   gap: 10px;
 }
 
+.ai-action {
+  background: linear-gradient(180deg, #f8f5ff, #ede9fe) !important;
+  color: #6d28d9 !important;
+  border: 1px solid rgba(139, 92, 246, .24) !important;
+  font-weight: 1000 !important;
+}
+
 .module-card,
 .admin-preview-card {
   position: relative;
@@ -156,14 +163,16 @@
   line-height: 1.45;
 }
 
-.order-mini-list {
+.order-mini-list,
+.analysis-list {
   display: grid;
   gap: 8px;
 }
 
-.order-mini-card {
+.order-mini-card,
+.analysis-card {
   display: grid;
-  gap: 4px;
+  gap: 7px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -172,13 +181,82 @@
   box-shadow: var(--soft-depth), inset 0 1px 0 #fff;
 }
 
-.order-mini-card strong {
+.order-mini-card strong,
+.analysis-card strong {
   font-size: 15px;
 }
 
-.order-mini-card small {
+.order-mini-card small,
+.analysis-card small {
   color: var(--muted);
   font-weight: 800;
+}
+
+.order-mini-card em {
+  justify-self: start;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 1000;
+}
+
+.analysis-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.analysis-card-head div {
+  display: grid;
+  gap: 3px;
+}
+
+.analysis-card-head span {
+  color: #7c3aed;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.analysis-card-head button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 1000;
+  white-space: nowrap;
+}
+
+.analysis-card p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.analysis-mini-list {
+  display: grid;
+  gap: 5px;
+}
+
+.analysis-mini-list em {
+  display: block;
+  padding: 7px 9px;
+  border-radius: 12px;
+  background: #f8f5ff;
+  color: #5b21b6;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .settings-dialog {
