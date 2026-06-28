@@ -2,12 +2,13 @@ import './test-pull.js';
 import './compact-detail.js';
 import './app-update.js';
 import './test-export.js';
+import './modal-scroll-fix.js';
 
 function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=hotfix-click-1';
+  l.href='src/polish.css?v=hotfix-modal-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
