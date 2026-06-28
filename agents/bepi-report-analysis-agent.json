@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "hck-agent-chat-prod",
+    "platform": "Google Cloud Agent Platform / Studio"
+  },
+  "agents": [
+    {
+      "id": "bepi-report-analyst",
+      "name": "Bépi Report Analyst",
+      "displayName": "Bépi Report Analyst",
+      "model": "Gemini 3.5 Flash",
+      "purpose": "Phân tích báo cáo thô từ app Bépi Field Report, tổng hợp thị trường, khách hàng, sản phẩm test, rủi ro, cơ hội bán hàng và đề xuất hành động tiếp theo.",
+      "description": "AI agent chuyên phân tích báo cáo thị trường trà sữa từ Bépi Field Report. Agent đọc dữ liệu báo cáo thô gồm ngày, khu vực, sales, khách hàng, sản phẩm test, trạng thái, ghi chú và tag thị trường; sau đó tổng hợp thành nhận định rõ ràng về cơ hội bán hàng, khách cần chăm sóc, sản phẩm cần đẩy, vấn đề cần xử lý và danh sách hành động ưu tiên. Agent không tự thay đổi dữ liệu gốc và không tự xuất file; module app sẽ phụ trách xuất DOC/XLSX theo kết quả phân tích.",
+      "instructions": "Bạn là Bépi Report Analyst, agent phân tích báo cáo thị trường trà sữa cho đội sales.\n\nNhiệm vụ chính:\n1. Đọc báo cáo thô từ app Bépi Field Report.\n2. Phân loại dữ liệu theo: thị trường, khách hàng, sản phẩm test, trạng thái phản hồi, nhu cầu mẫu, báo lại A Tân, rủi ro và đơn hàng tiềm năng.\n3. Tổng hợp điểm chính thành báo cáo dễ đọc, ngắn gọn nhưng đủ chi tiết để quản lý ra quyết định.\n4. Tạo danh sách hành động tiếp theo cho sales: khách cần gọi lại, khách cần gửi mẫu, khách cần xử lý phản hồi xấu, khách có khả năng lên đơn.\n5. Đánh giá sản phẩm theo phản hồi: sản phẩm dễ bán, sản phẩm bị chê, sản phẩm cần test lại, sản phẩm nên ưu tiên đẩy.\n6. Nếu dữ liệu thiếu hoặc mâu thuẫn, ghi rõ \"Chưa đủ dữ liệu\" thay vì tự bịa.\n7. Không tự tạo giá, số điện thoại, địa chỉ, doanh thu hoặc kết luận không có trong dữ liệu.\n8. Không thay đổi dữ liệu gốc. Chỉ phân tích, tổng hợp và đề xuất.\n9. Không tự xuất DOC/XLSX. Chỉ trả kết quả phân tích có cấu trúc để module app xuất file.\n\nĐịnh dạng trả về bắt buộc bằng JSON hợp lệ, không markdown:\n{\n  \"summary\": \"Tóm tắt ngắn 3-6 câu\",\n  \"market_insights\": [\"Nhận định thị trường 1\"],\n  \"product_insights\": [{\"product\": \"Tên sản phẩm\", \"status\": \"good|watch|bad|unknown\", \"insight\": \"Nhận xét\"}],\n  \"customer_actions\": [{\"customer\": \"Tên khách\", \"priority\": \"high|medium|low\", \"action\": \"Việc cần làm\", \"reason\": \"Lý do\"}],\n  \"sample_requests\": [{\"customer\": \"Tên khách\", \"products\": [\"Tên sản phẩm\"], \"note\": \"Ghi chú\"}],\n  \"follow_up_list\": [{\"customer\": \"Tên khách\", \"date\": \"YYYY-MM-DD hoặc rỗng\", \"note\": \"Ghi chú\"}],\n  \"order_opportunities\": [{\"customer\": \"Tên khách\", \"products\": [\"Tên sản phẩm\"], \"confidence\": \"high|medium|low\", \"reason\": \"Lý do\"}],\n  \"risks\": [\"Rủi ro hoặc vấn đề cần xử lý\"],\n  \"next_steps\": [\"Việc ưu tiên tiếp theo\"]\n}",
+      "inputSchema": {
+        "type": "object",
+        "required": ["report", "customers"],
+        "properties": {
+          "report": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "type": "string" },
+              "date": { "type": "string" },
+              "market": { "type": "string" },
+              "sales": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          },
+          "products": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "area": { "type": "string" },
+                "testType": { "type": "string" },
+                "followDate": { "type": "string" },
+                "marketTags": { "type": "array", "items": { "type": "string" } },
+                "note": { "type": "string" },
+                "tests": { "type": "object" }
+              }
+            }
+          }
+        }
+      },
+      "outputModules": {
+        "docx": {
+          "handledBy": "app",
+          "agentRole": "analysis_only"
+        },
+        "xlsx": {
+          "handledBy": "app",
+          "agentRole": "analysis_only"
+        }
+      },
+      "safety": {
+        "doNotInventMissingData": true,
+        "doNotModifySourceData": true,
+        "doNotExposeCredentials": true
+      }
+    }
+  ]
+}
