@@ -1,7 +1,107 @@
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
-const L={pending:'Chưa thử',ok:'OK',interested:'Quan tâm',sample:'Cần mẫu',follow:'Báo sau',bad:'Chưa tốt',retry:'Thử lại'};
-const E=s=>String(s||'').split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;');
-const Q=s=>document.querySelector(s);
-function css(){if(Q('#compactCss'))return;let s=document.createElement('style');s.id='compactCss';s.textContent='.compact-customer{border:1px solid #dce8e5;border-radius:12px;padding:8px 10px;background:#fbfffd;margin-top:7px}.compact-customer b{font-size:14px}.compact-customer span{font-size:11px;color:#63727c;margin-left:6px}.compact-customer p{margin:4px 0 0;font-size:12px;line-height:1.35}.compact-modal{gap:7px}.compact-modal h2{font-size:18px}';document.head.appendChild(s)}
-async function openCompact(id){css();let tests=await getAllLocal(LOCAL_STORES.onaTests),items=await getAllLocal(LOCAL_STORES.onaTestItems),file=tests.find(x=>x.id===id),customers=tests.filter(x=>x.raw_payload&&x.raw_payload.file_id===id);let html='<div class="modal compact-modal"><header><h2>'+E(file&&file.customer_name||'File test')+'</h2><button type="button" data-close>Đóng</button></header>';for(let c of customers){let rs=items.filter(i=>i.test_id===c.id).map(r=>E(r.product_name)+': '+E(L[r.status]||r.status)+(r.note?' / '+E(r.note):'')).join(' · ');html+='<article class="compact-customer"><b>'+E(c.customer_name)+'</b>'+(c.area?'<span>'+E(c.area)+'</span>':'')+(c.customer_phone?'<span>'+E(c.customer_phone)+'</span>':'')+'<p>'+(rs||'Chưa ghi kết quả sản phẩm.')+'</p></article>'}html+=(customers.length?'':'<p class="empty">Chưa có khách.</p>')+'</div>';let m=Q('#modal');m.innerHTML=html;m.showModal()}
-document.addEventListener('click',e=>{let d=e.target.closest('[data-detail]');if(!d)return;e.preventDefault();e.stopImmediatePropagation();openCompact(d.dataset.detail)},true);
+
+const LABELS = {
+  pending: 'Chưa thử',
+  ok: 'OK',
+  interested: 'Quan tâm',
+  sample: 'Cần mẫu',
+  follow: 'Báo sau',
+  bad: 'Chưa tốt',
+  retry: 'Thử lại',
+};
+
+const escapeHtml = (value = '') => String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  "'": '&#39;',
+  '"': '&quot;',
+}[char]));
+
+const query = (selector) => document.querySelector(selector);
+
+function normalizeStatus(value = '') {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function statusTone(status) {
+  const value = normalizeStatus(status);
+  if (['ok', 'tot', 'good', 'dat'].includes(value)) return 'ok';
+  if (['bad', 'retry', 'chua tot', 'thu lai', 'fail', 'not ok'].includes(value)) return 'bad';
+  return 'warn';
+}
+
+function ensureCss() {
+  if (query('#compactCss')) return;
+  const style = document.createElement('style');
+  style.id = 'compactCss';
+  style.textContent = `
+    .compact-customer{border:1px solid #dce8e5;border-radius:12px;padding:8px 10px;background:#fbfffd;margin-top:7px}
+    .compact-customer b{font-size:14px}
+    .compact-meta{font-size:11px;color:#63727c;margin-left:6px}
+    .compact-results{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+    .compact-result{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:3px 6px;border:1px solid #dce8e5;border-radius:999px;background:#fff;font-size:12px;line-height:1.25}
+    .compact-product{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:128px}
+    .compact-status{padding:2px 6px;border-radius:999px;border:1px solid transparent;font-size:11px;font-weight:850;white-space:nowrap}
+    .compact-status.ok{background:#e7f9eb;color:#167c32;border-color:#bdeec9}
+    .compact-status.warn{background:#fff7df;color:#9a5a00;border-color:#f1d17d}
+    .compact-status.bad{background:#fff0ed;color:#c63b2e;border-color:#f3b7ad}
+    .compact-note{font-size:11px;color:#63727c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:92px}
+    .compact-empty{margin:7px 0 0;font-size:12px;color:#63727c}
+    .compact-modal{gap:7px}
+    .compact-modal h2{font-size:18px}
+  `;
+  document.head.appendChild(style);
+}
+
+function resultHtml(result) {
+  const label = LABELS[result.status] || result.status || 'Chưa thử';
+  const tone = statusTone(result.status || label);
+  return `
+    <span class="compact-result">
+      <span class="compact-product">${escapeHtml(result.product_name)}</span>
+      <span class="compact-status ${tone}">${escapeHtml(label)}</span>
+      ${result.note ? `<span class="compact-note">${escapeHtml(result.note)}</span>` : ''}
+    </span>
+  `;
+}
+
+async function openCompact(fileId) {
+  ensureCss();
+
+  const tests = await getAllLocal(LOCAL_STORES.onaTests);
+  const items = await getAllLocal(LOCAL_STORES.onaTestItems);
+  const file = tests.find((test) => test.id === fileId);
+  const customers = tests.filter((test) => test.raw_payload && test.raw_payload.file_id === fileId);
+
+  let html = `<div class="modal compact-modal"><header><h2>${escapeHtml(file?.customer_name || 'File test')}</h2><button type="button" data-close>Đóng</button></header>`;
+
+  for (const customer of customers) {
+    const results = items.filter((item) => item.test_id === customer.id);
+    html += `
+      <article class="compact-customer">
+        <b>${escapeHtml(customer.customer_name)}</b>
+        ${customer.area ? `<span class="compact-meta">${escapeHtml(customer.area)}</span>` : ''}
+        ${customer.customer_phone ? `<span class="compact-meta">${escapeHtml(customer.customer_phone)}</span>` : ''}
+        ${results.length ? `<div class="compact-results">${results.map(resultHtml).join('')}</div>` : '<p class="compact-empty">Chưa ghi kết quả sản phẩm.</p>'}
+      </article>
+    `;
+  }
+
+  html += `${customers.length ? '' : '<p class="empty">Chưa có khách.</p>'}</div>`;
+  const modal = query('#modal');
+  modal.innerHTML = html;
+  modal.showModal();
+}
+
+document.addEventListener('click', (event) => {
+  const detailButton = event.target.closest('[data-detail]');
+  if (!detailButton) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  openCompact(detailButton.dataset.detail);
+}, true);
