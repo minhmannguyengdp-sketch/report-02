@@ -1,0 +1,1 @@
+document.addEventListener('click',async e=>{if(!e.target.closest('#mockAiButton'))return;e.preventDefault();e.stopImmediatePropagation();const box=document.querySelector('.ai-result');if(box)box.innerHTML='<h2>Kết quả AI</h2><p>AI thật phải chạy qua /api/ai-report. Vercel chưa nạp module dữ liệu ở bước này.</p>';},true);
