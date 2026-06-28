@@ -14,6 +14,7 @@
     <link rel="apple-touch-icon" href="icons/icon.svg" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="mobile-polish.css" />
+    <link rel="stylesheet" href="popup-ui.css" />
   </head>
   <body>
     <div class="mobile-app">
@@ -89,6 +90,7 @@
             <div>
               <span>Google Sheet</span>
               <h2>Kết nối</h2>
+              <small class="settings-hint">Chỉ mở khi cần cấu hình.</small>
             </div>
             <em>02</em>
           </div>
@@ -173,7 +175,7 @@
               </div>
             </div>
 
-            <details id="customerEditor" class="mobile-card editor-card" open>
+            <details id="customerEditor" class="mobile-card editor-card">
               <summary id="editorTitle">Thêm khách hàng</summary>
               <form id="customerForm" class="compact-form customer-form">
                 <input type="hidden" id="editingCustomerId" />
@@ -249,5 +251,6 @@
     </div>
 
     <script src="app.js" type="module"></script>
+    <script src="popup-ui.js"></script>
   </body>
 </html>
