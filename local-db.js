@@ -190,7 +190,7 @@ export async function updateSyncJob(id, patch = {}) {
 
 export async function getSyncQueue() {
   const rows = await getAllLocal(LOCAL_STORES.syncQueue);
-  return rows.sort((a, b) => String(a.created_at).localeCompare(b.created_at));
+  return rows.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
 }
 
 export async function clearDoneSyncJobs() {
