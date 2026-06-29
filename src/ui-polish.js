@@ -4,12 +4,14 @@ import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
 import './mcp-ui-shell.js';
+import './business-ui-shells.js';
+import './data-hub-shell.js';
 
 function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=test-select-tint-1';
+  l.href='src/polish.css?v=data-hub-direct-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
@@ -22,7 +24,7 @@ function addCss(){
     .hero,.tabs{display:none!important}
     .card,.nav button,.secondary,.primary,.sync-state,.head button,.mini{pointer-events:auto!important;touch-action:manipulation!important}
     .card *,.nav button *{pointer-events:none!important}
-    .test-actions *,.admin-actions *,.modal *,.mcp-page *{pointer-events:auto!important}
+    .test-actions *,.admin-actions *,.modal *,.mcp-page *,.shell-page *,.data-hub *{pointer-events:auto!important}
     .modal .test-row{background:linear-gradient(180deg,#f5fffb,#eefbf6)!important;border-color:#bfe9dc!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.75)!important}
     .modal .test-row>b{color:#087463!important}
     .modal .test-row select{background:#e4f7f0!important;border-color:#9bdccd!important;color:#075f52!important;font-weight:900!important;box-shadow:0 1px 0 rgba(255,255,255,.8)!important}
@@ -63,6 +65,8 @@ function tuneHomeCards(){
 
     if(t.includes('Đơn hàng')){
       c.classList.add('card-order');
+      c.removeAttribute('data-open');
+      c.dataset.page='order-shell';
       if(i)i.textContent='🛒';
       if(b)b.textContent='Đơn hàng';
       if(sm)sm.textContent='Khung UI tạo đơn nhanh.';
@@ -81,8 +85,10 @@ function tuneHomeCards(){
       return;
     }
 
-    if(t.includes('Báo cáo thị trường')){
+    if(t.includes('Báo cáo thị trường')||t.includes('Báo cáo')){
       c.classList.add('card-report');
+      c.removeAttribute('data-open');
+      c.dataset.page='report-shell';
       if(i)i.textContent='📊';
       if(b)b.textContent='Báo cáo';
       if(sm)sm.textContent='Khung UI thị trường.';
@@ -94,7 +100,7 @@ function tuneHomeCards(){
 function focus(){
   tuneHomeCards();
   const h=document.querySelector('[data-page="data"] h1');
-  if(h)h.textContent='Dữ liệu test';
+  if(h)h.textContent='Dữ liệu';
   const w=document.querySelector('.warn');
   if(w)w.textContent='Local DB là cache. Supabase dùng để đồng bộ nhiều thiết bị.';
   const create=document.querySelector('.nav [data-page="create"] span');
