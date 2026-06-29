@@ -1,5 +1,5 @@
 const DB_NAME = 'bep-si-report-local-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const LOCAL_STORES = Object.freeze({
   meta: 'meta',
@@ -15,6 +15,7 @@ export const LOCAL_STORES = Object.freeze({
   aiSummaries: 'ai_summaries',
   mcpRoutes: 'mcp_routes',
   mcpRouteCustomers: 'mcp_route_customers',
+  mcpRouteSessions: 'mcp_route_sessions',
   mcpVisits: 'mcp_visits',
   syncQueue: 'sync_queue'
 });
@@ -32,6 +33,7 @@ const BUSINESS_STORES = [
   LOCAL_STORES.aiSummaries,
   LOCAL_STORES.mcpRoutes,
   LOCAL_STORES.mcpRouteCustomers,
+  LOCAL_STORES.mcpRouteSessions,
   LOCAL_STORES.mcpVisits
 ];
 
@@ -205,7 +207,7 @@ export async function clearBusinessData() {
 }
 
 export async function localStats() {
-  const [orders, tests, reports, customers, ai, routes, routeCustomers, visits, queue] = await Promise.all([
+  const [orders, tests, reports, customers, ai, routes, routeCustomers, routeSessions, visits, queue] = await Promise.all([
     getAllLocal(LOCAL_STORES.orders),
     getAllLocal(LOCAL_STORES.onaTests),
     getAllLocal(LOCAL_STORES.marketReports),
@@ -213,6 +215,7 @@ export async function localStats() {
     getAllLocal(LOCAL_STORES.aiSummaries),
     getAllLocal(LOCAL_STORES.mcpRoutes),
     getAllLocal(LOCAL_STORES.mcpRouteCustomers),
+    getAllLocal(LOCAL_STORES.mcpRouteSessions),
     getAllLocal(LOCAL_STORES.mcpVisits),
     getAllLocal(LOCAL_STORES.syncQueue)
   ]);
@@ -220,7 +223,7 @@ export async function localStats() {
     acc[job.status] = (acc[job.status] || 0) + 1;
     return acc;
   }, { pending: 0, syncing: 0, error: 0, done: 0 });
-  const mcp = routes.length + routeCustomers.length + visits.length;
+  const mcp = routes.length + routeCustomers.length + routeSessions.length + visits.length;
   return {
     records: orders.length + tests.length + reports.length + customers.length + ai.length + mcp,
     orders: orders.length,
@@ -231,6 +234,7 @@ export async function localStats() {
     mcp,
     mcpRoutes: routes.length,
     mcpCustomers: routeCustomers.length,
+    mcpSessions: routeSessions.length,
     mcpVisits: visits.length,
     queue: countByStatus,
     pending: (countByStatus.pending || 0) + (countByStatus.syncing || 0),
