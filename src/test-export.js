@@ -143,7 +143,7 @@ async function exportTestFile(fileId) {
 }
 
 function addExportButtons() {
-  document.querySelectorAll('.test-actions').forEach((actions) => {
+  document.querySelectorAll('#dataList .test-actions').forEach((actions) => {
     if (actions.querySelector('[data-export-test]')) return;
     const refButton = actions.querySelector('[data-detail]') || actions.querySelector('[data-add-customer]');
     const fileId = refButton?.dataset.detail || refButton?.dataset.addCustomer;
@@ -163,7 +163,9 @@ function injectCss() {
   const style = document.createElement('style');
   style.dataset.testExport = '1';
   style.textContent = `
-    .test-export-btn{border-color:#188733!important;color:#188733!important;background:#f4fff6!important}
+    #dataList .record .test-actions{display:grid!important;grid-template-columns:76px 76px 76px!important;gap:6px!important;align-items:center!important;justify-content:start!important;overflow:visible!important}
+    #dataList .record .test-actions button.secondary{box-sizing:border-box!important;display:inline-grid!important;place-items:center!important;width:76px!important;min-width:76px!important;max-width:76px!important;height:32px!important;min-height:32px!important;max-height:32px!important;padding:0 5px!important;font-size:11px!important;line-height:1!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;flex:0 0 76px!important}
+    #dataList .record .test-actions .test-export-btn{border-color:#188733!important;color:#188733!important;background:#f4fff6!important}
   `;
   document.head.appendChild(style);
 }
@@ -186,6 +188,5 @@ document.addEventListener('click', (event) => {
   exportTestFile(button.dataset.exportTest);
 });
 
+boot();
 window.addEventListener('DOMContentLoaded', boot);
-setTimeout(boot, 300);
-setTimeout(boot, 1200);
