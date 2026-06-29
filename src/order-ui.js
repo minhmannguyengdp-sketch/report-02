@@ -18,7 +18,7 @@ function toast(message) {
 }
 
 function page() {
-  if (document.querySelector('[data-page="order-shell"]')) return;
+  if (document.querySelector('section.page[data-page="order-shell"]')) return;
   const main = document.querySelector('main');
   if (!main) return;
   main.insertAdjacentHTML('beforeend', '<section class="page shell-page order-page" data-page="order-shell"></section>');
@@ -51,7 +51,7 @@ function card(order, items) {
 }
 
 async function render() {
-  const section = document.querySelector('[data-page="order-shell"]');
+  const section = document.querySelector('section.page[data-page="order-shell"]');
   if (!section) return;
   const { orders, items } = await loadOrders();
   const today = todayIsoDate();
