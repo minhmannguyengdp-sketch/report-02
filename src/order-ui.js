@@ -75,21 +75,30 @@ function productRow(name = '', quantity = 1, price = '') {
   return `<div class="order-line" data-order-line><input data-order-product placeholder="Sản phẩm" value="${esc(name)}"><input data-order-qty type="number" inputmode="numeric" min="1" value="${esc(quantity)}"><input data-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(price)}"><button type="button" class="secondary" data-order-remove-line>×</button></div>`;
 }
 
-function provinceListHtml(province = '') {
+function optionHtml(value = '', label = value, selected = '') {
+  return `<option value="${esc(value)}" ${value === selected ? 'selected' : ''}>${esc(label)}</option>`;
+}
+
+function provinceOptionsHtml(selected = '') {
+  return optionHtml('', 'Chọn tỉnh/thành', selected) + provinceOptions.map((name) => optionHtml(name, name, selected)).join('');
+}
+
+function districtOptionsHtml(province = '', selected = '', keepCustom = true) {
   const districts = districtsForProvince(province);
-  return `<datalist id="vnProvinceList">${provinceOptions.map((name) => `<option value="${esc(name)}"></option>`).join('')}</datalist><datalist id="vnDistrictList">${districts.map((name) => `<option value="${esc(name)}"></option>`).join('')}</datalist>`;
+  const rows = [optionHtml('', province ? 'Chọn quận/huyện' : 'Chọn tỉnh trước', selected), ...districts.map((name) => optionHtml(name, name, selected))];
+  if (keepCustom && selected && !districts.includes(selected)) rows.push(optionHtml(selected, selected, selected));
+  return rows.join('');
 }
 
 function updateDistrictOptions({ clearInvalid = false } = {}) {
   const province = document.querySelector('#orderProvince')?.value || '';
-  const districtInput = document.querySelector('#orderDistrict');
-  const list = document.querySelector('#vnDistrictList');
-  if (!list) return;
+  const districtSelect = document.querySelector('#orderDistrict');
+  if (!districtSelect) return;
   const districts = districtsForProvince(province);
-  list.innerHTML = districts.map((name) => `<option value="${esc(name)}"></option>`).join('');
-  if (clearInvalid && districtInput?.value && districts.length && !districts.includes(districtInput.value)) {
-    districtInput.value = '';
-  }
+  const current = districtSelect.value || '';
+  const nextValue = clearInvalid && current && districts.length && !districts.includes(current) ? '' : current;
+  districtSelect.innerHTML = districtOptionsHtml(province, nextValue, !clearInvalid);
+  districtSelect.value = nextValue;
 }
 
 function splitArea(value = '') {
@@ -179,7 +188,7 @@ async function openOrderModal(seed = {}) {
   const district = seed.district || seed.raw_payload?.district || split.district;
   const geoText = seed.geo_text || seed.raw_payload?.geo_text || seed.raw_payload?.google_maps_url || '';
   dialog.dataset.type = 'order-create';
-  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${provinceListHtml(province)}<div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><div class="grid order-customer-source-row"><label><span>Nguồn / MCP</span><select id="orderMcpSource">${sourceOptions}</select></label><label><span>Khách trong MCP</span><select id="orderCustomerSelect" ${selectedSessionId ? '' : 'disabled'}>${customerOptions}</select></label></div><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><input id="orderProvince" list="vnProvinceList" autocomplete="address-level1" value="${esc(province)}" placeholder="Bến Tre"></label><label><span>Quận/Huyện</span><input id="orderDistrict" list="vnDistrictList" autocomplete="address-level2" value="${esc(district)}" placeholder="Chợ Lách"></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form"><div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><div class="grid order-customer-source-row"><label><span>Nguồn / MCP</span><select id="orderMcpSource">${sourceOptions}</select></label><label><span>Khách trong MCP</span><select id="orderCustomerSelect" ${selectedSessionId ? '' : 'disabled'}>${customerOptions}</select></label></div><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><select id="orderProvince" autocomplete="address-level1">${provinceOptionsHtml(province)}</select></label><label><span>Quận/Huyện</span><select id="orderDistrict" autocomplete="address-level2">${districtOptionsHtml(province, district)}</select></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
   dialog.showModal();
   syncMcpSourceUi();
   updateDistrictOptions();
@@ -408,7 +417,6 @@ document.addEventListener('change', async (event) => {
 });
 
 document.addEventListener('input', (event) => {
-  if (event.target.closest('#orderProvince')) updateDistrictOptions({ clearInvalid: true });
   if (event.target.closest('[data-order-line]')) updateTotal();
 });
 
