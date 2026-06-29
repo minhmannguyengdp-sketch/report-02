@@ -6,6 +6,9 @@ export const STORAGE_KEYS_V2 = Object.freeze({
   onaTests: 'bepi-v2-ona-tests',
   marketReports: 'bepi-v2-market-reports',
   aiSummaries: 'bepi-v2-ai-summaries',
+  mcpRoutes: 'bepi-v2-mcp-routes',
+  mcpRouteCustomers: 'bepi-v2-mcp-route-customers',
+  mcpVisits: 'bepi-v2-mcp-visits',
   syncQueue: 'bepi-v2-sync-queue'
 });
 
@@ -20,6 +23,9 @@ export const TABLES_V2 = Object.freeze({
   marketReportProducts: 'market_report_products',
   marketReportCompetitors: 'market_report_competitors',
   aiSummaries: 'ai_summaries',
+  mcpRoutes: 'mcp_routes',
+  mcpRouteCustomers: 'mcp_route_customers',
+  mcpVisits: 'mcp_visits',
   exports: 'exports'
 });
 
@@ -40,6 +46,14 @@ export const TEST_STATUSES = Object.freeze([
   'follow',
   'bad',
   'retry'
+]);
+
+export const MCP_VISIT_STATUSES = Object.freeze([
+  'todo',
+  'done',
+  'order',
+  'test',
+  'no'
 ]);
 
 export const DEFAULT_ONA_PRODUCTS = Object.freeze([
@@ -109,6 +123,63 @@ export function makeCustomerMaster(input = {}) {
     raw_payload: input.raw_payload || input,
     created_at: input.created_at || nowIso(),
     updated_at: input.updated_at || nowIso()
+  };
+}
+
+export function makeMcpRoute(input = {}) {
+  return {
+    id: input.id || uid('mcp-route'),
+    route_name: cleanText(input.route_name || input.name) || 'Tuyến A',
+    weekday: Math.max(0, Math.min(6, Math.trunc(toNumber(input.weekday, new Date().getDay())))),
+    area: cleanText(input.area),
+    distributor_id: cleanText(input.distributor_id),
+    active: input.active !== false,
+    note: cleanText(input.note),
+    sync_status: cleanText(input.sync_status) || 'local',
+    raw_payload: input.raw_payload || input,
+    created_at: input.created_at || nowIso(),
+    updated_at: input.updated_at || nowIso(),
+    synced_at: input.synced_at || null
+  };
+}
+
+export function makeMcpRouteCustomer(input = {}) {
+  return {
+    id: input.id || uid('mcp-route-customer'),
+    route_id: cleanText(input.route_id),
+    customer_id: cleanText(input.customer_id),
+    customer_name: cleanText(input.customer_name || input.name),
+    phone: cleanText(input.phone || input.customer_phone),
+    area: cleanText(input.area),
+    address: cleanText(input.address || input.delivery_address),
+    sort_order: Math.max(0, Math.trunc(toNumber(input.sort_order))),
+    active: input.active !== false,
+    note: cleanText(input.note),
+    sync_status: cleanText(input.sync_status) || 'local',
+    raw_payload: input.raw_payload || input,
+    created_at: input.created_at || nowIso(),
+    updated_at: input.updated_at || nowIso(),
+    synced_at: input.synced_at || null
+  };
+}
+
+export function makeMcpVisit(input = {}) {
+  const status = keepStatus(input.status, MCP_VISIT_STATUSES, 'done');
+  return {
+    id: input.id || uid('mcp-visit'),
+    route_id: cleanText(input.route_id),
+    route_customer_id: cleanText(input.route_customer_id),
+    visit_date: input.visit_date || input.date || todayIsoDate(),
+    status,
+    has_order: Boolean(input.has_order || status === 'order'),
+    has_test: Boolean(input.has_test || status === 'test'),
+    has_report: Boolean(input.has_report),
+    note: cleanText(input.note),
+    sync_status: cleanText(input.sync_status) || 'local',
+    raw_payload: input.raw_payload || input,
+    created_at: input.created_at || nowIso(),
+    updated_at: input.updated_at || nowIso(),
+    synced_at: input.synced_at || null
   };
 }
 
