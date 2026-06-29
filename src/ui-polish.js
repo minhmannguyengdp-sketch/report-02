@@ -3,7 +3,7 @@ import './compact-detail.js?v=test-detail-width-1';
 import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
-import './modal-form-ui.js?v=ui-modal-ownership-1';
+import './modal-form-ui.js?v=ui-modal-zoom-1';
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
