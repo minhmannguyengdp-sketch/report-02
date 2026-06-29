@@ -1,5 +1,5 @@
 import './test-pull.js';
-import './compact-detail.js';
+import './compact-detail.js?v=test-detail-width-1';
 import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
