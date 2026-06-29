@@ -141,9 +141,19 @@ function ensureModalFormCss() {
       background:#fff!important;
       color:#082337!important;
       padding:9px 10px!important;
-      font-size:14px!important;
+      font-size:16px!important;
       line-height:1.2!important;
       outline:none!important;
+    }
+    #modal[data-type="test-detail"] input,
+    #modal[data-type="test-detail"] textarea,
+    #modal[data-type="test-detail"] select,
+    #modal .test-row input,
+    #modal .test-row textarea,
+    #modal .test-row select{
+      font-size:16px!important;
+      min-height:40px!important;
+      max-width:100%!important;
     }
     #modal[data-type="customer"] textarea,
     #modal[data-type="mcp-start"] textarea,
@@ -241,7 +251,7 @@ function ensureModalFormCss() {
       #modal[data-type="order-create"] .order-line input{
         padding-left:7px!important;
         padding-right:7px!important;
-        font-size:13px!important;
+        font-size:16px!important;
       }
     }
   `;
