@@ -1,9 +1,9 @@
 import { makeOrder, makeOrderItem, makeMcpVisit, todayIsoDate, uid } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal, putLocal, putManyLocal } from '../local-db.js';
+import { districtsForProvince, provinceOptions } from './vn-admin-units.js';
 
 const currency = new Intl.NumberFormat('vi-VN');
 const statusText = { draft: 'Nháp', pending_confirm: 'Chờ xác nhận', confirmed: 'Đã chốt' };
-const provinceOptions = ['An Giang','Bà Rịa - Vũng Tàu','Bạc Liêu','Bắc Giang','Bắc Kạn','Bắc Ninh','Bến Tre','Bình Dương','Bình Định','Bình Phước','Bình Thuận','Cà Mau','Cần Thơ','Cao Bằng','Đà Nẵng','Đắk Lắk','Đắk Nông','Điện Biên','Đồng Nai','Đồng Tháp','Gia Lai','Hà Giang','Hà Nam','Hà Nội','Hà Tĩnh','Hải Dương','Hải Phòng','Hậu Giang','Hòa Bình','TP. Hồ Chí Minh','Hưng Yên','Khánh Hòa','Kiên Giang','Kon Tum','Lai Châu','Lâm Đồng','Lạng Sơn','Lào Cai','Long An','Nam Định','Nghệ An','Ninh Bình','Ninh Thuận','Phú Thọ','Phú Yên','Quảng Bình','Quảng Nam','Quảng Ngãi','Quảng Ninh','Quảng Trị','Sóc Trăng','Sơn La','Tây Ninh','Thái Bình','Thái Nguyên','Thanh Hóa','Thừa Thiên Huế','Tiền Giang','Trà Vinh','Tuyên Quang','Vĩnh Long','Vĩnh Phúc','Yên Bái'];
 
 function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -73,8 +73,21 @@ function productRow(name = '', quantity = 1, price = '') {
   return `<div class="order-line" data-order-line><input data-order-product placeholder="Sản phẩm" value="${esc(name)}"><input data-order-qty type="number" inputmode="numeric" min="1" value="${esc(quantity)}"><input data-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(price)}"><button type="button" class="secondary" data-order-remove-line>×</button></div>`;
 }
 
-function provinceListHtml() {
-  return `<datalist id="vnProvinceList">${provinceOptions.map((name) => `<option value="${esc(name)}"></option>`).join('')}</datalist>`;
+function provinceListHtml(province = '') {
+  const districts = districtsForProvince(province);
+  return `<datalist id="vnProvinceList">${provinceOptions.map((name) => `<option value="${esc(name)}"></option>`).join('')}</datalist><datalist id="vnDistrictList">${districts.map((name) => `<option value="${esc(name)}"></option>`).join('')}</datalist>`;
+}
+
+function updateDistrictOptions({ clearInvalid = false } = {}) {
+  const province = document.querySelector('#orderProvince')?.value || '';
+  const districtInput = document.querySelector('#orderDistrict');
+  const list = document.querySelector('#vnDistrictList');
+  if (!list) return;
+  const districts = districtsForProvince(province);
+  list.innerHTML = districts.map((name) => `<option value="${esc(name)}"></option>`).join('');
+  if (clearInvalid && districtInput?.value && districts.length && !districts.includes(districtInput.value)) {
+    districtInput.value = '';
+  }
 }
 
 function splitArea(value = '') {
@@ -111,10 +124,11 @@ async function openOrderModal(seed = {}) {
   const split = splitArea(seed.area || '');
   const province = seed.province || seed.raw_payload?.province || split.province;
   const district = seed.district || seed.raw_payload?.district || split.district;
-  const geoText = seed.geo_text || seed.raw_payload?.geo_text || seed.raw_payload?.google_maps_url || seed.raw_payload?.google_maps_url || '';
+  const geoText = seed.geo_text || seed.raw_payload?.geo_text || seed.raw_payload?.google_maps_url || '';
   dialog.dataset.type = 'order-create';
-  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${provinceListHtml()}<div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><label><span>Khách MCP</span><select id="orderCustomerSelect">${options}</select></label><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><input id="orderProvince" list="vnProvinceList" autocomplete="address-level1" value="${esc(province)}" placeholder="Bến Tre"></label><label><span>Quận/Huyện</span><input id="orderDistrict" autocomplete="address-level2" value="${esc(district)}" placeholder="Chợ Lách"></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${provinceListHtml(province)}<div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><label><span>Khách MCP</span><select id="orderCustomerSelect">${options}</select></label><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><input id="orderProvince" list="vnProvinceList" autocomplete="address-level1" value="${esc(province)}" placeholder="Bến Tre"></label><label><span>Quận/Huyện</span><input id="orderDistrict" list="vnDistrictList" autocomplete="address-level2" value="${esc(district)}" placeholder="Chợ Lách"></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
   dialog.showModal();
+  updateDistrictOptions();
   fillCustomerFromSelect();
   updateTotal();
   document.querySelector('#orderCustomerName')?.focus();
@@ -127,10 +141,13 @@ async function fillCustomerFromSelect() {
   const customer = customers.find((row) => row.id === select.value);
   if (!customer) return;
   const split = splitArea(customer.area || '');
+  const province = customer.raw_payload?.province || split.province || '';
+  const district = customer.raw_payload?.district || split.district || customer.area || '';
   document.querySelector('#orderCustomerName').value = customer.customer_name || '';
   document.querySelector('#orderCustomerPhone').value = customer.phone || '';
-  document.querySelector('#orderProvince').value = customer.raw_payload?.province || split.province || '';
-  document.querySelector('#orderDistrict').value = customer.raw_payload?.district || split.district || customer.area || '';
+  document.querySelector('#orderProvince').value = province;
+  updateDistrictOptions();
+  document.querySelector('#orderDistrict').value = district;
   document.querySelector('#orderAddress').value = customer.address || '';
   const geo = customer.google_maps_url || (customer.geo_lat && customer.geo_lng ? `${customer.geo_lat},${customer.geo_lng}` : '');
   document.querySelector('#orderGeoText').value = geo;
@@ -293,10 +310,12 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('change', (event) => {
   if (event.target.closest('#orderCustomerSelect')) fillCustomerFromSelect();
+  if (event.target.closest('#orderProvince')) updateDistrictOptions({ clearInvalid: true });
   if (event.target.closest('[data-order-line]')) updateTotal();
 });
 
 document.addEventListener('input', (event) => {
+  if (event.target.closest('#orderProvince')) updateDistrictOptions({ clearInvalid: true });
   if (event.target.closest('[data-order-line]')) updateTotal();
 });
 
