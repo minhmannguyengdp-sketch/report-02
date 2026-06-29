@@ -4,9 +4,9 @@ import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
 import './modal-form-ui.js?v=mcp-geo-1';
-import './mcp-start.js';
+import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
-import './data-hub-shell.js?v=mcp-detail-1';
+import './data-hub-shell.js?v=ui-boundary-1';
 import './mcp-ui-shell.js?v=mcp-geo-1';
 import './order-ui.js?v=home-card-selector-fix-1';
 import './business-ui-shells.js?v=home-card-selector-fix-1';
@@ -31,9 +31,18 @@ function addCss(){
   `;
 }
 
+function homeGrid(){
+  return document.querySelector('section.page[data-page="create"] .grid-actions');
+}
+
+function homeCards(){
+  const grid=homeGrid();
+  return grid?[...grid.querySelectorAll(':scope > .card')]:[];
+}
+
 function ensureMcpCard(){
-  const grid=document.querySelector('.grid-actions');
-  if(!grid || grid.querySelector('[data-home-card="mcp"]'))return;
+  const grid=homeGrid();
+  if(!grid || grid.querySelector(':scope > [data-home-card="mcp"]'))return;
   const card=document.createElement('button');
   card.type='button';
   card.className='card home-card card-mcp';
@@ -45,7 +54,7 @@ function ensureMcpCard(){
 
 function tuneHomeCards(){
   ensureMcpCard();
-  document.querySelectorAll('.card').forEach(c=>{
+  homeCards().forEach(c=>{
     const t=c.textContent||'';
     c.classList.remove('is-hidden','card-mcp','card-order','card-test','card-report','home-card');
     c.classList.add('home-card');
@@ -97,9 +106,9 @@ function tuneHomeCards(){
 
 function focus(){
   tuneHomeCards();
-  const h=document.querySelector('[data-page="data"] h1');
+  const h=document.querySelector('section.page[data-page="data"] h1');
   if(h)h.textContent='Dữ liệu';
-  const w=document.querySelector('.warn');
+  const w=document.querySelector('section.page[data-page="admin"] .warn');
   if(w)w.textContent='Local DB là cache. Supabase dùng để đồng bộ nhiều thiết bị.';
   const create=document.querySelector('.nav [data-page="create"] span');
   const data=document.querySelector('.nav [data-page="data"] span');
