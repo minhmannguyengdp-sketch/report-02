@@ -5,6 +5,16 @@ function injectModalCss() {
   style.dataset.modalScrollFix = '1';
   style.textContent = `
     html,body,.app{overflow-x:hidden!important;max-width:100%!important}
+    main,.page{overflow-x:hidden!important;max-width:100%!important}
+    #dataList,.record,.record *,#recent,.mini,.mini *{box-sizing:border-box!important;max-width:100%!important}
+    #dataList{overflow-x:hidden!important;touch-action:pan-y!important}
+    .record{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;overflow:hidden!important;touch-action:pan-y!important}
+    .record>div{min-width:0!important;max-width:100%!important;overflow:hidden!important}
+    .record aside{display:flex!important;justify-content:flex-start!important;align-items:center!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+    .record h3,.record p,.record small{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}
+    .test-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important;max-width:100%!important;overflow:hidden!important}
+    .test-actions[hidden]{display:none!important}
+    .test-actions button{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:100%!important;max-width:100%!important;min-width:0!important;min-height:36px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;pointer-events:auto!important}
     #modal{width:min(420px,calc(100vw - 16px))!important;max-width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;overflow:hidden!important;padding:0!important;box-sizing:border-box!important;overscroll-behavior:contain!important;touch-action:pan-y!important}
     #modal::backdrop{touch-action:none;background:rgba(8,35,55,.34)}
     #modal>.modal{width:100%!important;max-width:100%!important;max-height:calc(100dvh - 16px)!important;overflow-y:auto!important;overflow-x:hidden!important;box-sizing:border-box!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important}
