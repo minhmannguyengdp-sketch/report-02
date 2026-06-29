@@ -96,6 +96,5 @@ document.addEventListener('click', (event) => {
   forceUpdate();
 });
 
+boot();
 window.addEventListener('DOMContentLoaded', boot);
-setTimeout(boot, 300);
-setTimeout(boot, 1200);
