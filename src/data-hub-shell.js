@@ -1,9 +1,9 @@
 import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
+import { getMcpSessionDetail, getMcpRouteSessions, setActiveMcpRouteSessionId } from './mcp-core.js';
 
 const dataTabs = [['mcp', '🧭', 'MCP'], ['order', '🛒', 'Đơn'], ['test', '🧪', 'Test'], ['report', '📊', 'Báo cáo']];
 const mock = { report: [['6', 'Báo cáo'], ['4', 'Đối thủ'], ['2', 'Cơ hội']] };
-const statusLabel = { todo: 'Chưa ghé', done: 'Đã ghé', order: 'Có đơn', test: 'Có test', no: 'Không mua' };
 const money = new Intl.NumberFormat('vi-VN');
 let active = 'test';
 
@@ -18,37 +18,41 @@ function formatMoney(value) {
   return amount ? `${money.format(amount)}đ` : '0đ';
 }
 
-function visitStatus(customer, visits) {
-  const visit = visits.find((row) => row.route_customer_id === customer.id);
-  if (!visit) return 'todo';
-  if (visit.status === 'order' || visit.has_order) return 'order';
-  if (visit.status === 'test' || visit.has_test) return 'test';
-  return visit.status || 'done';
+function formatDate(value = '') {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value || '-';
+  const [year, month, day] = value.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+function activateMcpPage() {
+  document.querySelectorAll('.page').forEach((element) => element.classList.toggle('active', element.dataset.page === 'mcp'));
+  document.querySelectorAll('.nav button').forEach((button) => button.classList.toggle('active', button.dataset.page === 'create'));
+  const subtitle = document.querySelector('#subtitle');
+  if (subtitle) subtitle.textContent = 'MCP tuyến';
+  window.dispatchEvent(new CustomEvent('mcp:session-changed'));
+}
+
+async function sessionCard(session) {
+  const detail = await getMcpSessionDetail(session.id);
+  const stats = detail?.stats || session;
+  const routeName = session.route_name || detail?.route?.route_name || 'Tuyến';
+  const area = session.area || detail?.route?.area || 'Chưa đặt khu vực';
+  const visited = Number(stats.visited_customers || 0);
+  const planned = Number(stats.planned_customers || 0);
+  const orders = Number(stats.order_count || 0);
+  const tests = Number(stats.test_count || 0);
+  const reports = Number(stats.report_count || 0);
+  return `<article class="data-shell-card mcp-session-card" data-mcp-session-id="${esc(session.id)}"><div class="shell-card-head"><div><h3>${esc(formatDate(session.session_date))} · ${esc(routeName)}</h3><small>${esc(area)}${session.sales ? ` · Sales: ${esc(session.sales)}` : ''}</small><small>${planned} khách · ${visited} đã ghé · ${orders} đơn · ${tests} test · ${reports} báo cáo</small></div><span class="shell-badge green">${esc(session.status || 'active')}</span></div><div class="shell-actions"><button type="button" class="primary-lite" data-mcp-open-session="${esc(session.id)}">Mở phiên</button><button type="button" data-mcp-open-session="${esc(session.id)}">Chi tiết</button></div></article>`;
 }
 
 async function renderMcpShell(shell) {
-  const [routes, customers, visits] = await Promise.all([
-    getAllLocal(LOCAL_STORES.mcpRoutes),
-    getAllLocal(LOCAL_STORES.mcpRouteCustomers),
-    getAllLocal(LOCAL_STORES.mcpVisits)
-  ]);
-  const route = routes.find((row) => row.active !== false) || null;
+  const sessions = await getMcpRouteSessions();
+  const activeSessions = sessions.filter((session) => session.status !== 'cancelled');
   const today = todayIsoDate();
-  const routeCustomers = route ? customers.filter((row) => row.route_id === route.id && row.active !== false) : [];
-  const todayVisits = route ? visits.filter((row) => row.route_id === route.id && row.visit_date === today) : [];
-  const done = routeCustomers.filter((customer) => visitStatus(customer, todayVisits) !== 'todo').length;
-  const order = routeCustomers.filter((customer) => visitStatus(customer, todayVisits) === 'order').length;
-  const test = routeCustomers.filter((customer) => visitStatus(customer, todayVisits) === 'test').length;
-  const sample = routeCustomers
-    .slice()
-    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
-    .slice(0, 8)
-    .map((customer) => {
-      const status = visitStatus(customer, todayVisits);
-      return `<article class="data-shell-card"><h3>${esc(customer.customer_name)}</h3><small>${esc(statusLabel[status] || status)} · ${esc(customer.area || route?.area || '')}</small></article>`;
-    }).join('');
-  const list = sample || '<p class="data-shell-note">Chưa có khách MCP. Bấm “Mở MCP tuyến” để thêm khách/tuyến.</p>';
-  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${routeCustomers.length}</b><span>Khách tuyến</span></div><div class="data-shell-kpi"><b>${done}</b><span>Đã ghé</span></div><div class="data-shell-kpi"><b>${order}</b><span>Có đơn</span></div></div><article class="data-shell-card data-shell-open-card"><h3>Tóm tắt dữ liệu MCP</h3><small>${esc(route ? `${route.route_name} · ${route.area || 'Chưa đặt khu vực'} · ${today}` : 'Chưa có tuyến MCP.')}</small><small>Đây là màn xem dữ liệu, không phải màn thao tác tuyến.</small><button type="button" class="secondary data-shell-open-btn" data-page="mcp">Mở MCP tuyến</button></article><div class="data-shell-kpis"><div class="data-shell-kpi"><b>${test}</b><span>Có test</span></div><div class="data-shell-kpi"><b>${visits.length}</b><span>Lượt ghé</span></div><div class="data-shell-kpi"><b>${routes.length}</b><span>Tuyến</span></div></div><div class="data-shell-list">${list}</div>`;
+  const todaySessions = activeSessions.filter((session) => session.session_date === today);
+  const doneSessions = activeSessions.filter((session) => session.status === 'done').length;
+  const cards = await Promise.all(activeSessions.map(sessionCard));
+  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${activeSessions.length}</b><span>Phiên tuyến</span></div><div class="data-shell-kpi"><b>${todaySessions.length}</b><span>Hôm nay</span></div><div class="data-shell-kpi"><b>${doneSessions}</b><span>Đã chốt</span></div></div><article class="data-shell-card data-shell-open-card"><h3>Dữ liệu MCP theo phiên tuyến</h3><small>Mỗi dòng là một ngày đi tuyến. Bấm “Mở phiên” để xem lại hoặc thao tác khách của đúng ngày đó.</small><button type="button" class="secondary data-shell-open-btn" data-mcp-start>Bắt đầu phiên mới</button></article><div class="data-shell-list">${cards.join('') || '<p class="data-shell-note">Chưa có phiên MCP. Bấm “Bắt đầu phiên mới” để chọn ngày/tuyến.</p>'}</div>`;
 }
 
 async function renderOrderShell(shell) {
@@ -123,7 +127,15 @@ async function apply(value) {
   shell.innerHTML = '<div class="data-shell-kpis">' + k.map((item) => '<div class="data-shell-kpi"><b>' + item[0] + '</b><span>' + item[1] + '</span></div>').join('') + '</div><p class="data-shell-note">UI shell tham khảo, chưa nối dữ liệu thật.</p><div class="data-shell-list"><article class="data-shell-card"><h3>Dữ liệu ' + active + '</h3><small>Danh sách mẫu, chưa ghi dữ liệu thật.</small></article></div>';
 }
 
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
+  const sessionButton = event.target.closest('[data-mcp-open-session]');
+  if (sessionButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    await setActiveMcpRouteSessionId(sessionButton.dataset.mcpOpenSession);
+    activateMcpPage();
+    return;
+  }
   const button = event.target.closest('#dataHub [data-data-view]');
   if (!button) return;
   event.preventDefault();
