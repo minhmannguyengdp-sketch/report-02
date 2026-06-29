@@ -65,8 +65,8 @@ export async function openMcpStartModal(seed = {}) {
   dialog.dataset.type = 'mcp-start';
   dialog.innerHTML = `<form class="modal" data-mcp-start-form><header><h2>Bắt đầu MCP tuyến</h2><button type="button" data-close>Đóng</button></header><div class="form"><div class="grid"><label><span>Ngày đi tuyến</span><input id="mcpStartDate" type="date" value="${esc(selectedDate)}"></label><label><span>Sales</span><input id="mcpStartSales" placeholder="Tên sales" value="${esc(seed.sales || '')}"></label></div><label><span>Chọn tuyến</span><select id="mcpStartRoute">${html}</select></label><p class="data-shell-note" id="mcpStartSummary">Đang đọc tuyến...</p><button class="primary" data-mcp-start-submit>Bắt đầu tuyến</button><article class="line"><b>Tạo tuyến nhanh</b><div class="grid"><label><span>Tên tuyến</span><input id="mcpNewRouteName" placeholder="Ví dụ: Tuyến A"></label><label><span>Khu vực</span><input id="mcpNewRouteArea" placeholder="Ví dụ: Chợ Lớn"></label></div><small id="mcpNewRouteWeekday">Gán theo ngày đang chọn: ${esc(weekdayNames[weekdayFromDate(selectedDate)])}</small><button type="button" class="secondary wide" data-mcp-create-route>+ Tạo tuyến</button></article></div></form>`;
   dialog.showModal();
-  await updateRouteSummary();
   if (selected) document.querySelector('#mcpStartRoute').value = selected;
+  await updateRouteSummary();
 }
 
 async function refreshRoutesAfterDateChange() {
@@ -82,7 +82,9 @@ async function refreshRoutesAfterDateChange() {
 }
 
 async function createRouteQuick() {
+  const dialog = document.querySelector('#modal');
   const date = document.querySelector('#mcpStartDate')?.value || todayIsoDate();
+  const sales = document.querySelector('#mcpStartSales')?.value || '';
   const name = document.querySelector('#mcpNewRouteName')?.value.trim();
   if (!name) return toast('Nhập tên tuyến trước đã.');
   const route = makeMcpRoute({
@@ -92,7 +94,8 @@ async function createRouteQuick() {
     note: 'Tạo nhanh từ popup bắt đầu MCP.'
   });
   await putLocal(LOCAL_STORES.mcpRoutes, route);
-  await openMcpStartModal({ session_date: date, route_id: route.id, sales: document.querySelector('#mcpStartSales')?.value || '' });
+  if (dialog?.open) dialog.close();
+  await openMcpStartModal({ session_date: date, route_id: route.id, sales });
   toast('Đã tạo tuyến.');
 }
 
@@ -114,8 +117,9 @@ async function startSession(event) {
 }
 
 document.addEventListener('click', (event) => {
-  const mcpEntry = event.target.closest('[data-page="mcp"], [data-mcp-start]');
-  if (mcpEntry && !event.target.closest('section.page[data-page="mcp"]')) {
+  const startButton = event.target.closest('[data-mcp-start]');
+  const mcpPageEntry = event.target.closest('[data-page="mcp"]');
+  if (startButton || (mcpPageEntry && !event.target.closest('section.page[data-page="mcp"]'))) {
     event.preventDefault();
     event.stopImmediatePropagation();
     openMcpStartModal();
