@@ -7,13 +7,6 @@ import './mcp-ui-shell.js';
 import './business-ui-shells.js';
 
 function addCss(){
-  document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
-  const l=document.createElement('link');
-  l.rel='stylesheet';
-  l.href='src/polish.css?v=emergency-click-1';
-  l.dataset.uiPolish='1';
-  document.head.appendChild(l);
-
   let s=document.querySelector('style[data-test-fixes]');
   if(!s){s=document.createElement('style');s.dataset.testFixes='1';document.head.appendChild(s)}
   s.textContent=`
