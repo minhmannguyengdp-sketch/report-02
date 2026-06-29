@@ -1,5 +1,7 @@
 import { makeMcpRouteSession, makeMcpVisit, todayIsoDate, nowIso } from '../data-model.js';
-import { LOCAL_STORES, getAllLocal, getLocal, putLocal } from '../local-db.js';
+import { LOCAL_STORES, getAllLocal, getLocal, putLocal, getMeta, setMeta } from '../local-db.js';
+
+export const ACTIVE_MCP_SESSION_META = 'active_mcp_route_session_id';
 
 function cleanDate(value) {
   return value || todayIsoDate();
@@ -20,6 +22,14 @@ export function mcpVisitCounts(customers = [], visits = []) {
     test_count: scopedVisits.filter((visit) => visit.has_test || visit.status === 'test').length,
     report_count: scopedVisits.filter((visit) => visit.has_report || visit.status === 'report').length
   };
+}
+
+export async function getActiveMcpRouteSessionId() {
+  return getMeta(ACTIVE_MCP_SESSION_META, '');
+}
+
+export async function setActiveMcpRouteSessionId(sessionId) {
+  return setMeta(ACTIVE_MCP_SESSION_META, sessionId || '');
 }
 
 export async function getMcpRoutes() {
@@ -54,6 +64,11 @@ export async function getMcpSessionDetail(sessionId) {
   ]);
   const sessionVisits = visits.filter((visit) => visit.session_id === session.id || (visit.route_id === session.route_id && visit.visit_date === session.session_date));
   return { session, route, customers, visits: sessionVisits, stats: mcpVisitCounts(customers, sessionVisits) };
+}
+
+export async function getActiveMcpSessionDetail() {
+  const sessionId = await getActiveMcpRouteSessionId();
+  return getMcpSessionDetail(sessionId);
 }
 
 export async function findMcpRouteSession(routeId, sessionDate = todayIsoDate()) {
