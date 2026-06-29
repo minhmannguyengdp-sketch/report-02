@@ -6,12 +6,13 @@ import './modal-scroll-fix.js';
 import './mcp-ui-shell.js';
 import './business-ui-shells.js';
 import './data-hub-shell.js';
+import './data-hub-force.js';
 
 function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=data-hub-direct-1';
+  l.href='src/polish.css?v=data-tabs-force-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
@@ -117,3 +118,4 @@ addCss();
 window.addEventListener('DOMContentLoaded',focus);
 setTimeout(focus,300);
 setTimeout(focus,1200);
+setInterval(focus,2500);
