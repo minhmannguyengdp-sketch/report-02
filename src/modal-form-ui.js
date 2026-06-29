@@ -144,6 +144,7 @@ function ensureModalFormCss() {
       border-radius:13px!important;
     }
     #modal[data-type="mcp-start"] .line,
+    #modal[data-type="mcp-customer"] .line,
     #modal[data-type="order-create"] .line,
     #modal[data-type="order-detail"] .line,
     #modal[data-type="order-detail"] .total{
@@ -153,6 +154,15 @@ function ensureModalFormCss() {
       border-radius:14px!important;
       background:#fbfffd!important;
       padding:10px!important;
+    }
+    #modal[data-type="mcp-customer"] .line small{
+      color:#63727c!important;
+      line-height:1.35!important;
+    }
+    #modal[data-type="mcp-customer"] .line a.secondary{
+      display:grid!important;
+      place-items:center!important;
+      text-decoration:none!important;
     }
     #modal[data-type="order-create"] .order-line{
       display:grid!important;
