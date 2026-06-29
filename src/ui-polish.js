@@ -22,6 +22,7 @@ import './business-ui-shells.js?v=ui-safe-1';
 import './report-ui.js?v=report-local-1';
 import './report-modal-ui.js?v=report-modal-1';
 import './mcp-manage-actions-compact-ui.js?v=mcp-manage-row-1';
+import './supabase-sync.js?v=supabase-sync-1';
 import './ai-agent-settings.js';
 
 function addCss(){
