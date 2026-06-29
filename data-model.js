@@ -104,6 +104,13 @@ export function keepStatus(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
 }
 
+export function makeGoogleMapsUrl(lat, lng) {
+  const latitude = toNumber(lat, null);
+  const longitude = toNumber(lng, null);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return '';
+  return `https://maps.google.com/?q=${latitude},${longitude}`;
+}
+
 export function makeProduct(input = {}) {
   const name = cleanText(input.name);
   return {
@@ -158,6 +165,9 @@ export function makeMcpRoute(input = {}) {
 }
 
 export function makeMcpRouteCustomer(input = {}) {
+  const geoLat = Number.isFinite(Number(input.geo_lat ?? input.lat)) ? Number(input.geo_lat ?? input.lat) : null;
+  const geoLng = Number.isFinite(Number(input.geo_lng ?? input.lng)) ? Number(input.geo_lng ?? input.lng) : null;
+  const googleMapsUrl = cleanText(input.google_maps_url) || makeGoogleMapsUrl(geoLat, geoLng);
   return {
     id: input.id || uid('mcp-route-customer'),
     route_id: cleanText(input.route_id),
@@ -169,6 +179,12 @@ export function makeMcpRouteCustomer(input = {}) {
     sort_order: Math.max(0, Math.trunc(toNumber(input.sort_order))),
     active: input.active !== false,
     note: cleanText(input.note),
+    geo_lat: geoLat,
+    geo_lng: geoLng,
+    geo_accuracy: Number.isFinite(Number(input.geo_accuracy)) ? Number(input.geo_accuracy) : null,
+    geo_captured_at: input.geo_captured_at || null,
+    geo_source: cleanText(input.geo_source),
+    google_maps_url: googleMapsUrl,
     sync_status: cleanText(input.sync_status) || 'local',
     raw_payload: input.raw_payload || input,
     created_at: input.created_at || nowIso(),
