@@ -38,14 +38,17 @@ async function renderMcpShell(shell) {
   const todayVisits = route ? visits.filter((row) => row.route_id === route.id && row.visit_date === today) : [];
   const done = routeCustomers.filter((customer) => visitStatus(customer, todayVisits) !== 'todo').length;
   const order = routeCustomers.filter((customer) => visitStatus(customer, todayVisits) === 'order').length;
-  const cards = routeCustomers
+  const test = routeCustomers.filter((customer) => visitStatus(customer, todayVisits) === 'test').length;
+  const sample = routeCustomers
     .slice()
     .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+    .slice(0, 8)
     .map((customer) => {
       const status = visitStatus(customer, todayVisits);
       return `<article class="data-shell-card"><h3>${esc(customer.customer_name)}</h3><small>${esc(statusLabel[status] || status)} · ${esc(customer.area || route?.area || '')}</small></article>`;
-    }).join('') || '<p class="data-shell-note">Chưa có khách MCP. Vào Home → MCP tuyến → + Khách để thêm.</p>';
-  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${routeCustomers.length}</b><span>Khách tuyến</span></div><div class="data-shell-kpi"><b>${done}</b><span>Đã ghé</span></div><div class="data-shell-kpi"><b>${order}</b><span>Có đơn</span></div></div><p class="data-shell-note">${esc(route ? `${route.route_name} · ${route.area || 'Chưa đặt khu vực'}` : 'Chưa có tuyến MCP.')}</p><div class="data-shell-list">${cards}</div>`;
+    }).join('');
+  const list = sample || '<p class="data-shell-note">Chưa có khách MCP. Bấm “Mở MCP tuyến” để thêm khách/tuyến.</p>';
+  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${routeCustomers.length}</b><span>Khách tuyến</span></div><div class="data-shell-kpi"><b>${done}</b><span>Đã ghé</span></div><div class="data-shell-kpi"><b>${order}</b><span>Có đơn</span></div></div><article class="data-shell-card data-shell-open-card"><h3>Tóm tắt dữ liệu MCP</h3><small>${esc(route ? `${route.route_name} · ${route.area || 'Chưa đặt khu vực'} · ${today}` : 'Chưa có tuyến MCP.')}</small><small>Đây là màn xem dữ liệu, không phải màn thao tác tuyến.</small><button type="button" class="secondary data-shell-open-btn" data-page="mcp">Mở MCP tuyến</button></article><div class="data-shell-kpis"><div class="data-shell-kpi"><b>${test}</b><span>Có test</span></div><div class="data-shell-kpi"><b>${visits.length}</b><span>Lượt ghé</span></div><div class="data-shell-kpi"><b>${routes.length}</b><span>Tuyến</span></div></div><div class="data-shell-list">${list}</div>`;
 }
 
 async function renderOrderShell(shell) {
