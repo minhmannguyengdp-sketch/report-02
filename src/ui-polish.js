@@ -5,6 +5,7 @@ import './test-export.js';
 import './modal-scroll-fix.js';
 import './mcp-ui-shell.js';
 import './business-ui-shells.js';
+import './ai-agent-settings.js';
 
 function addCss(){
   let s=document.querySelector('style[data-test-fixes]');
