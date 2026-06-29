@@ -1,5 +1,5 @@
 import './business-ui-shells.js';
-import { makeMcpRouteCustomer } from '../data-model.js';
+import { makeGoogleMapsUrl, makeMcpRouteCustomer, nowIso } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal, putLocal } from '../local-db.js';
 import { getActiveMcpSessionDetail, recalcMcpRouteSession, upsertMcpVisitForSession } from './mcp-core.js';
 
@@ -68,6 +68,17 @@ function statCount(customers, visits, status) {
   return customers.filter((customer) => statusOf(customer, visits) === status).length;
 }
 
+function customerMapUrl(customer) {
+  return customer.google_maps_url || makeGoogleMapsUrl(customer.geo_lat, customer.geo_lng);
+}
+
+function renderLocation(customer) {
+  const url = customerMapUrl(customer);
+  if (!url) return '';
+  const accuracy = Number.isFinite(Number(customer.geo_accuracy)) ? ` · ±${Math.round(Number(customer.geo_accuracy))}m` : '';
+  return `<small class="mcp-location">📍 Đã lưu vị trí${accuracy} <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Mở Google Maps</a></small>`;
+}
+
 function renderCards(customers, visits) {
   const filtered = customers.filter((customer) => {
     const status = statusOf(customer, visits);
@@ -85,6 +96,7 @@ function renderCards(customers, visits) {
     return `<article class="mcp-customer" data-status="${esc(statusClasses(status))}" data-customer-id="${esc(customer.id)}">
       <div class="mcp-customer-head"><div><h3>${esc(customer.customer_name)}</h3><small>${esc(detail)}</small></div><span class="mcp-badge ${esc(status)}">${esc(statusLabel[status] || status)}</span></div>
       ${customer.note ? `<small class="mcp-note">${esc(customer.note)}</small>` : ''}
+      ${renderLocation(customer)}
       <div class="mcp-actions">
         <button type="button" data-mcp-status="done" data-customer-id="${esc(customer.id)}">Check-in</button>
         <button type="button" data-mcp-status="order" data-customer-id="${esc(customer.id)}">Có đơn</button>
@@ -127,9 +139,58 @@ function openCustomerModal() {
   const dialog = document.querySelector('#modal');
   if (!dialog) return;
   dialog.dataset.type = 'mcp-customer';
-  dialog.innerHTML = `<form class="modal" data-mcp-customer-form><header><h2>Thêm khách vào tuyến</h2><button type="button" data-close>Đóng</button></header><div class="form"><div class="grid"><label><span>Khách</span><input id="mcpCustomerName" required placeholder="Tên quán / đại lý"></label><label><span>SĐT</span><input id="mcpCustomerPhone" inputmode="tel"></label></div><label><span>Khu vực</span><input id="mcpCustomerArea" placeholder="Ví dụ: Chợ Lớn"></label><label><span>Địa chỉ</span><input id="mcpCustomerAddress"></label><label><span>Ghi chú tuyến</span><textarea id="mcpCustomerNote" rows="2" placeholder="Giờ ghé, người liên hệ, ưu tiên..."></textarea></label><button class="primary" data-mcp-save-customer>Thêm vào tuyến</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-mcp-customer-form><header><h2>Thêm khách vào tuyến</h2><button type="button" data-close>Đóng</button></header><div class="form"><div class="grid"><label><span>Khách</span><input id="mcpCustomerName" required placeholder="Tên quán / đại lý"></label><label><span>SĐT</span><input id="mcpCustomerPhone" inputmode="tel"></label></div><label><span>Khu vực</span><input id="mcpCustomerArea" placeholder="Ví dụ: Chợ Lớn"></label><label><span>Địa chỉ</span><input id="mcpCustomerAddress"></label><article class="line"><b>Vị trí khách</b><small id="mcpGeoStatus">Chưa lấy vị trí. Đứng tại khách rồi bấm nút bên dưới.</small><button type="button" class="secondary wide" data-mcp-get-location>📍 Lấy vị trí hiện tại</button><a id="mcpGeoMapLink" class="secondary wide" href="#" target="_blank" rel="noopener noreferrer" hidden>Mở Google Maps</a><input id="mcpGeoLat" type="hidden"><input id="mcpGeoLng" type="hidden"><input id="mcpGeoAccuracy" type="hidden"><input id="mcpGeoCapturedAt" type="hidden"><input id="mcpGoogleMapsUrl" type="hidden"></article><label><span>Ghi chú tuyến</span><textarea id="mcpCustomerNote" rows="2" placeholder="Giờ ghé, người liên hệ, ưu tiên..."></textarea></label><button class="primary" data-mcp-save-customer>Thêm vào tuyến</button></div></form>`;
   if (!dialog.open) dialog.showModal();
   document.querySelector('#mcpCustomerName')?.focus();
+}
+
+function setGeoFields({ latitude, longitude, accuracy }) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  const acc = Number(accuracy);
+  const url = makeGoogleMapsUrl(lat, lng);
+  const capturedAt = nowIso();
+  const setValue = (selector, value) => {
+    const element = document.querySelector(selector);
+    if (element) element.value = value ?? '';
+  };
+  setValue('#mcpGeoLat', lat);
+  setValue('#mcpGeoLng', lng);
+  setValue('#mcpGeoAccuracy', Number.isFinite(acc) ? Math.round(acc) : '');
+  setValue('#mcpGeoCapturedAt', capturedAt);
+  setValue('#mcpGoogleMapsUrl', url);
+  const status = document.querySelector('#mcpGeoStatus');
+  if (status) status.textContent = `Đã lấy vị trí: ${lat.toFixed(6)}, ${lng.toFixed(6)}${Number.isFinite(acc) ? ` · độ chính xác ±${Math.round(acc)}m` : ''}`;
+  const link = document.querySelector('#mcpGeoMapLink');
+  if (link && url) {
+    link.href = url;
+    link.hidden = false;
+  }
+}
+
+function requestCustomerLocation() {
+  const status = document.querySelector('#mcpGeoStatus');
+  if (!navigator.geolocation) {
+    if (status) status.textContent = 'Máy/trình duyệt không hỗ trợ lấy vị trí.';
+    return toast('Máy không hỗ trợ lấy vị trí.');
+  }
+  if (status) status.textContent = 'Đang lấy vị trí, vui lòng cho phép quyền GPS...';
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      setGeoFields({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      });
+      toast('Đã lấy vị trí khách.');
+    },
+    (error) => {
+      const message = error.code === error.PERMISSION_DENIED ? 'Bạn chưa cho phép quyền vị trí.' : 'Không lấy được vị trí. Thử đứng ngoài trời hoặc bật GPS.';
+      if (status) status.textContent = message;
+      toast(message);
+    },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+  );
 }
 
 async function saveCustomer(event) {
@@ -147,13 +208,19 @@ async function saveCustomer(event) {
     area: document.querySelector('#mcpCustomerArea')?.value || state.route.area || state.session.area,
     address: document.querySelector('#mcpCustomerAddress')?.value,
     note: document.querySelector('#mcpCustomerNote')?.value,
+    geo_lat: document.querySelector('#mcpGeoLat')?.value,
+    geo_lng: document.querySelector('#mcpGeoLng')?.value,
+    geo_accuracy: document.querySelector('#mcpGeoAccuracy')?.value,
+    geo_captured_at: document.querySelector('#mcpGeoCapturedAt')?.value || null,
+    geo_source: document.querySelector('#mcpGeoLat')?.value ? 'gps' : '',
+    google_maps_url: document.querySelector('#mcpGoogleMapsUrl')?.value,
     sort_order: current.length + 1
   });
   await putLocal(LOCAL_STORES.mcpRouteCustomers, row);
   await recalcMcpRouteSession(state.session.id);
   document.querySelector('#modal')?.close();
   await render();
-  toast('Đã thêm khách vào tuyến.');
+  toast(row.google_maps_url ? 'Đã thêm khách và lưu vị trí.' : 'Đã thêm khách vào tuyến.');
 }
 
 async function setVisitStatus(customerId, status) {
@@ -179,6 +246,13 @@ function isInActiveMcpPage(target) {
 }
 
 function handleMcpActionClick(event) {
+  const geoButton = event.target.closest('[data-mcp-get-location]');
+  if (geoButton && event.target.closest('#modal[data-type="mcp-customer"]')) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    requestCustomerLocation();
+    return;
+  }
   if (!isInActiveMcpPage(event.target)) return;
   const addButton = event.target.closest('[data-mcp-add-customer]');
   if (addButton) {
