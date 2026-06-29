@@ -3,6 +3,7 @@ import { LOCAL_STORES, getAllLocal, putLocal, putManyLocal } from '../local-db.j
 
 const currency = new Intl.NumberFormat('vi-VN');
 const statusText = { draft: 'Nháp', pending_confirm: 'Chờ xác nhận', confirmed: 'Đã chốt' };
+const provinceOptions = ['An Giang','Bà Rịa - Vũng Tàu','Bạc Liêu','Bắc Giang','Bắc Kạn','Bắc Ninh','Bến Tre','Bình Dương','Bình Định','Bình Phước','Bình Thuận','Cà Mau','Cần Thơ','Cao Bằng','Đà Nẵng','Đắk Lắk','Đắk Nông','Điện Biên','Đồng Nai','Đồng Tháp','Gia Lai','Hà Giang','Hà Nam','Hà Nội','Hà Tĩnh','Hải Dương','Hải Phòng','Hậu Giang','Hòa Bình','TP. Hồ Chí Minh','Hưng Yên','Khánh Hòa','Kiên Giang','Kon Tum','Lai Châu','Lâm Đồng','Lạng Sơn','Lào Cai','Long An','Nam Định','Nghệ An','Ninh Bình','Ninh Thuận','Phú Thọ','Phú Yên','Quảng Bình','Quảng Nam','Quảng Ngãi','Quảng Ninh','Quảng Trị','Sóc Trăng','Sơn La','Tây Ninh','Thái Bình','Thái Nguyên','Thanh Hóa','Thừa Thiên Huế','Tiền Giang','Trà Vinh','Tuyên Quang','Vĩnh Long','Vĩnh Phúc','Yên Bái'];
 
 function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -72,12 +73,47 @@ function productRow(name = '', quantity = 1, price = '') {
   return `<div class="order-line" data-order-line><input data-order-product placeholder="Sản phẩm" value="${esc(name)}"><input data-order-qty type="number" inputmode="numeric" min="1" value="${esc(quantity)}"><input data-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(price)}"><button type="button" class="secondary" data-order-remove-line>×</button></div>`;
 }
 
+function provinceListHtml() {
+  return `<datalist id="vnProvinceList">${provinceOptions.map((name) => `<option value="${esc(name)}"></option>`).join('')}</datalist>`;
+}
+
+function splitArea(value = '') {
+  const text = String(value || '').trim();
+  if (!text) return { province: '', district: '' };
+  const parts = text.split(/\s*[·,-]\s*/).filter(Boolean);
+  if (parts.length >= 2) return { province: parts[0], district: parts.slice(1).join(' · ') };
+  return { province: '', district: text };
+}
+
+function parseGeoText(value = '') {
+  const text = String(value || '').trim();
+  if (!text) return { geo_text: '', google_maps_url: '', geo_lat: null, geo_lng: null };
+  const url = /^https?:\/\//i.test(text) ? text : '';
+  const match = text.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/) || text.match(/[?&]q=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/) || text.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  const lat = match ? Number(match[1]) : null;
+  const lng = match ? Number(match[2]) : null;
+  return {
+    geo_text: text,
+    google_maps_url: url,
+    geo_lat: Number.isFinite(lat) ? lat : null,
+    geo_lng: Number.isFinite(lng) ? lng : null
+  };
+}
+
+function composeArea(province = '', district = '') {
+  return [province, district].map((item) => String(item || '').trim()).filter(Boolean).join(' · ');
+}
+
 async function openOrderModal(seed = {}) {
   const dialog = document.querySelector('#modal');
   if (!dialog) return;
   const options = await customerOptions(seed.route_customer_id || '');
+  const split = splitArea(seed.area || '');
+  const province = seed.province || seed.raw_payload?.province || split.province;
+  const district = seed.district || seed.raw_payload?.district || split.district;
+  const geoText = seed.geo_text || seed.raw_payload?.geo_text || seed.raw_payload?.google_maps_url || seed.raw_payload?.google_maps_url || '';
   dialog.dataset.type = 'order-create';
-  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form"><div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><label><span>Khách MCP</span><select id="orderCustomerSelect">${options}</select></label><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><label><span>Khu vực</span><input id="orderArea" value="${esc(seed.area || '')}"></label><label><span>Địa chỉ giao</span><input id="orderAddress" value="${esc(seed.delivery_address || '')}"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${provinceListHtml()}<div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><label><span>Khách MCP</span><select id="orderCustomerSelect">${options}</select></label><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><input id="orderProvince" list="vnProvinceList" autocomplete="address-level1" value="${esc(province)}" placeholder="Bến Tre"></label><label><span>Quận/Huyện</span><input id="orderDistrict" autocomplete="address-level2" value="${esc(district)}" placeholder="Chợ Lách"></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
   dialog.showModal();
   fillCustomerFromSelect();
   updateTotal();
@@ -90,10 +126,14 @@ async function fillCustomerFromSelect() {
   const customers = await getAllLocal(LOCAL_STORES.mcpRouteCustomers);
   const customer = customers.find((row) => row.id === select.value);
   if (!customer) return;
+  const split = splitArea(customer.area || '');
   document.querySelector('#orderCustomerName').value = customer.customer_name || '';
   document.querySelector('#orderCustomerPhone').value = customer.phone || '';
-  document.querySelector('#orderArea').value = customer.area || '';
+  document.querySelector('#orderProvince').value = customer.raw_payload?.province || split.province || '';
+  document.querySelector('#orderDistrict').value = customer.raw_payload?.district || split.district || customer.area || '';
   document.querySelector('#orderAddress').value = customer.address || '';
+  const geo = customer.google_maps_url || (customer.geo_lat && customer.geo_lng ? `${customer.geo_lat},${customer.geo_lng}` : '');
+  document.querySelector('#orderGeoText').value = geo;
 }
 
 function readLines() {
@@ -145,6 +185,10 @@ async function saveOrder(event) {
 
   const total = lines.reduce((sum, line) => sum + line.line_total, 0);
   const routeCustomerId = document.querySelector('#orderCustomerSelect')?.value || '';
+  const province = document.querySelector('#orderProvince')?.value.trim() || '';
+  const district = document.querySelector('#orderDistrict')?.value.trim() || '';
+  const area = composeArea(province, district);
+  const geo = parseGeoText(document.querySelector('#orderGeoText')?.value || '');
   const order = makeOrder({
     id: uid('order'),
     order_date: document.querySelector('#orderDate')?.value || todayIsoDate(),
@@ -152,7 +196,7 @@ async function saveOrder(event) {
     customer_id: routeCustomerId,
     customer_name: customerName,
     customer_phone: document.querySelector('#orderCustomerPhone')?.value,
-    area: document.querySelector('#orderArea')?.value,
+    area,
     delivery_address: document.querySelector('#orderAddress')?.value,
     source_type: routeCustomerId ? 'mcp' : 'manual',
     source_id: routeCustomerId,
@@ -161,7 +205,7 @@ async function saveOrder(event) {
     grand_total: total,
     note: document.querySelector('#orderNote')?.value,
     sync_status: 'local',
-    raw_payload: { kind: 'order', route_customer_id: routeCustomerId }
+    raw_payload: { kind: 'order', route_customer_id: routeCustomerId, province, district, ...geo }
   });
   const items = lines.map((line) => makeOrderItem({ ...line, id: uid('order-item'), order_id: order.id }));
   await putLocal(LOCAL_STORES.orders, order);
@@ -177,9 +221,11 @@ async function showDetail(orderId) {
   const order = orders.find((row) => row.id === orderId);
   if (!order) return toast('Không tìm thấy đơn.');
   const lines = orderItemsOf(order, items);
+  const geo = order.raw_payload?.google_maps_url || order.raw_payload?.geo_text || '';
+  const geoLine = geo ? `<p class="data-shell-note">Định vị: ${esc(geo)}</p>` : '';
   const dialog = document.querySelector('#modal');
   dialog.dataset.type = 'order-detail';
-  dialog.innerHTML = `<div class="modal"><header><h2>${esc(order.customer_name || 'Đơn hàng')}</h2><button type="button" data-close>Đóng</button></header><div class="total"><b>${esc(formatMoney(order.grand_total))}</b><br><small>${esc(order.order_date || '')} · ${esc(order.area || '')}</small></div>${lines.map((line) => `<article class="line"><b>${esc(line.product_name)}</b><small>SL ${esc(line.quantity)} · Giá ${esc(formatMoney(line.unit_price))} · Thành tiền ${esc(formatMoney(line.line_total))}</small></article>`).join('') || '<p class="empty">Chưa có sản phẩm.</p>'}${order.note ? `<p class="data-shell-note">${esc(order.note)}</p>` : ''}</div>`;
+  dialog.innerHTML = `<div class="modal"><header><h2>${esc(order.customer_name || 'Đơn hàng')}</h2><button type="button" data-close>Đóng</button></header><div class="total"><b>${esc(formatMoney(order.grand_total))}</b><br><small>${esc(order.order_date || '')} · ${esc(order.area || '')}</small></div>${lines.map((line) => `<article class="line"><b>${esc(line.product_name)}</b><small>SL ${esc(line.quantity)} · Giá ${esc(formatMoney(line.unit_price))} · Thành tiền ${esc(formatMoney(line.line_total))}</small></article>`).join('') || '<p class="empty">Chưa có sản phẩm.</p>'}${order.delivery_address ? `<p class="data-shell-note">Địa chỉ: ${esc(order.delivery_address)}</p>` : ''}${geoLine}${order.note ? `<p class="data-shell-note">${esc(order.note)}</p>` : ''}</div>`;
   dialog.showModal();
 }
 
@@ -192,6 +238,9 @@ async function repeatOrder(orderId) {
     customer_name: order.customer_name,
     customer_phone: order.customer_phone,
     area: order.area,
+    province: order.raw_payload?.province,
+    district: order.raw_payload?.district,
+    geo_text: order.raw_payload?.geo_text || order.raw_payload?.google_maps_url,
     delivery_address: order.delivery_address,
     note: order.note,
     route_customer_id: order.raw_payload?.route_customer_id || order.customer_id,
