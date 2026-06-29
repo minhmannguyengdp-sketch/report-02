@@ -8,7 +8,7 @@ function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=show-all-1';
+  l.href='src/polish.css?v=home-dashboard-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
@@ -17,41 +17,74 @@ function addCss(){
   s.textContent=`
     html,body{width:100%;max-width:100%;overflow-x:hidden!important}
     .app{width:100%!important;max-width:none!important;margin:0!important;transform:none!important;overflow-x:hidden!important}
-    main{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
+    main{width:100%!important;max-width:100%!important;overflow:hidden!important}
     .hero,.tabs{display:none!important}
-    .card,.nav button,.secondary,.primary,.sync-state,.head button{pointer-events:auto!important;touch-action:manipulation!important}
+    .card,.nav button,.secondary,.primary,.sync-state,.head button,.mini{pointer-events:auto!important;touch-action:manipulation!important}
     .card *,.nav button *{pointer-events:none!important}
     .test-actions *,.admin-actions *,.modal *{pointer-events:auto!important}
-    .grid-actions{grid-template-columns:1fr!important}
   `;
 }
 
-function focus(){
+function ensureMcpCard(){
+  const grid=document.querySelector('.grid-actions');
+  if(!grid || grid.querySelector('[data-home-card="mcp"]'))return;
+  const card=document.createElement('button');
+  card.type='button';
+  card.className='card home-card card-mcp';
+  card.dataset.homeCard='mcp';
+  card.innerHTML='<i>🧭</i><b>MCP tuyến</b><small>Tuyến hôm nay và trạng thái ghé.</small><em>Xem UI</em>';
+  grid.insertBefore(card,grid.firstElementChild);
+}
+
+function tuneHomeCards(){
+  ensureMcpCard();
   document.querySelectorAll('.card').forEach(c=>{
     const t=c.textContent||'';
-    c.classList.remove('is-hidden');
+    c.classList.remove('is-hidden','card-mcp','card-order','card-test','card-report','home-card');
+    c.classList.add('home-card');
+    let i=c.querySelector('i'),b=c.querySelector('b'),sm=c.querySelector('small'),e=c.querySelector('em');
+
+    if(c.dataset.homeCard==='mcp'||t.includes('MCP')){
+      c.classList.add('card-mcp');
+      if(i)i.textContent='🧭';
+      if(b)b.textContent='MCP tuyến';
+      if(sm)sm.textContent='Tuyến hôm nay và trạng thái ghé.';
+      if(e)e.textContent='Xem UI';
+      return;
+    }
+
+    if(t.includes('Đơn hàng')){
+      c.classList.add('card-order');
+      if(i)i.textContent='🛒';
+      if(b)b.textContent='Đơn hàng';
+      if(sm)sm.textContent='Khung UI tạo đơn nhanh.';
+      if(e)e.textContent='Xem UI';
+      return;
+    }
+
     if(t.includes('File test')||t.includes('Test sản phẩm')){
+      c.classList.add('card-test');
       c.removeAttribute('data-open');
       c.setAttribute('data-open-test','');
-      let i=c.querySelector('i'),b=c.querySelector('b'),sm=c.querySelector('small'),e=c.querySelector('em');
       if(i)i.textContent='🧪';
-      if(b)b.textContent='File test tổng';
-      if(sm)sm.textContent='Nhập thủ công sản phẩm cần test. Không lấy nguồn Bếp Sỉ.';
-      if(e)e.textContent='Tạo file test';
+      if(b)b.textContent='Test sản phẩm';
+      if(sm)sm.textContent='Tạo file test và thêm khách.';
+      if(e)e.textContent='Mở';
+      return;
     }
-    if(t.includes('Đơn hàng')){
-      let i=c.querySelector('i'),sm=c.querySelector('small'),e=c.querySelector('em');
-      if(i)i.textContent='🛒';
-      if(sm)sm.textContent='Xem khung UI tạo đơn hàng.';
-      if(e)e.textContent='Xem UI';
-    }
+
     if(t.includes('Báo cáo thị trường')){
-      let i=c.querySelector('i'),sm=c.querySelector('small'),e=c.querySelector('em');
-      if(i)i.textContent='📍';
-      if(sm)sm.textContent='Xem khung UI báo cáo thị trường.';
+      c.classList.add('card-report');
+      if(i)i.textContent='📊';
+      if(b)b.textContent='Báo cáo';
+      if(sm)sm.textContent='Khung UI thị trường.';
       if(e)e.textContent='Xem UI';
     }
   });
+}
+
+function focus(){
+  tuneHomeCards();
   const h=document.querySelector('[data-page="data"] h1');
   if(h)h.textContent='Dữ liệu test';
   const w=document.querySelector('.warn');
@@ -60,7 +93,7 @@ function focus(){
   const data=document.querySelector('.nav [data-page="data"] span');
   const ai=document.querySelector('.nav [data-page="ai"] span');
   const admin=document.querySelector('.nav [data-page="admin"] span');
-  if(create)create.textContent='Tạo';
+  if(create)create.textContent='Home';
   if(data)data.textContent='Dữ liệu';
   if(ai)ai.textContent='AI';
   if(admin)admin.textContent='Admin';
