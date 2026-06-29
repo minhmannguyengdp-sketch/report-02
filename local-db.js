@@ -1,5 +1,5 @@
 const DB_NAME = 'bep-si-report-local-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const LOCAL_STORES = Object.freeze({
   meta: 'meta',
@@ -13,6 +13,9 @@ export const LOCAL_STORES = Object.freeze({
   marketReportProducts: 'market_report_products',
   marketReportCompetitors: 'market_report_competitors',
   aiSummaries: 'ai_summaries',
+  mcpRoutes: 'mcp_routes',
+  mcpRouteCustomers: 'mcp_route_customers',
+  mcpVisits: 'mcp_visits',
   syncQueue: 'sync_queue'
 });
 
@@ -26,7 +29,10 @@ const BUSINESS_STORES = [
   LOCAL_STORES.marketReports,
   LOCAL_STORES.marketReportProducts,
   LOCAL_STORES.marketReportCompetitors,
-  LOCAL_STORES.aiSummaries
+  LOCAL_STORES.aiSummaries,
+  LOCAL_STORES.mcpRoutes,
+  LOCAL_STORES.mcpRouteCustomers,
+  LOCAL_STORES.mcpVisits
 ];
 
 let dbPromise;
@@ -53,6 +59,11 @@ function createStore(db, name, options = { keyPath: 'id' }) {
   return null;
 }
 
+function ensureBusinessIndexes(store) {
+  if (!store.indexNames.contains('sync_status')) store.createIndex('sync_status', 'sync_status', { unique: false });
+  if (!store.indexNames.contains('updated_at')) store.createIndex('updated_at', 'updated_at', { unique: false });
+}
+
 export function openLocalDb() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
@@ -67,8 +78,7 @@ export function openLocalDb() {
       createStore(db, LOCAL_STORES.meta, { keyPath: 'key' });
       BUSINESS_STORES.forEach((name) => {
         const store = createStore(db, name, { keyPath: 'id' });
-        if (store && !store.indexNames.contains('sync_status')) store.createIndex('sync_status', 'sync_status', { unique: false });
-        if (store && !store.indexNames.contains('updated_at')) store.createIndex('updated_at', 'updated_at', { unique: false });
+        if (store) ensureBusinessIndexes(store);
       });
       const queue = createStore(db, LOCAL_STORES.syncQueue, { keyPath: 'id' });
       if (queue && !queue.indexNames.contains('status')) queue.createIndex('status', 'status', { unique: false });
@@ -180,7 +190,7 @@ export async function updateSyncJob(id, patch = {}) {
 
 export async function getSyncQueue() {
   const rows = await getAllLocal(LOCAL_STORES.syncQueue);
-  return rows.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  return rows.sort((a, b) => String(a.created_at).localeCompare(b.created_at));
 }
 
 export async function clearDoneSyncJobs() {
@@ -195,25 +205,33 @@ export async function clearBusinessData() {
 }
 
 export async function localStats() {
-  const [orders, tests, reports, customers, ai, queue] = await Promise.all([
+  const [orders, tests, reports, customers, ai, routes, routeCustomers, visits, queue] = await Promise.all([
     getAllLocal(LOCAL_STORES.orders),
     getAllLocal(LOCAL_STORES.onaTests),
     getAllLocal(LOCAL_STORES.marketReports),
     getAllLocal(LOCAL_STORES.customers),
     getAllLocal(LOCAL_STORES.aiSummaries),
+    getAllLocal(LOCAL_STORES.mcpRoutes),
+    getAllLocal(LOCAL_STORES.mcpRouteCustomers),
+    getAllLocal(LOCAL_STORES.mcpVisits),
     getAllLocal(LOCAL_STORES.syncQueue)
   ]);
   const countByStatus = queue.reduce((acc, job) => {
     acc[job.status] = (acc[job.status] || 0) + 1;
     return acc;
   }, { pending: 0, syncing: 0, error: 0, done: 0 });
+  const mcp = routes.length + routeCustomers.length + visits.length;
   return {
-    records: orders.length + tests.length + reports.length + customers.length + ai.length,
+    records: orders.length + tests.length + reports.length + customers.length + ai.length + mcp,
     orders: orders.length,
     tests: tests.length,
     reports: reports.length,
     customers: customers.length,
     ai: ai.length,
+    mcp,
+    mcpRoutes: routes.length,
+    mcpCustomers: routeCustomers.length,
+    mcpVisits: visits.length,
     queue: countByStatus,
     pending: (countByStatus.pending || 0) + (countByStatus.syncing || 0),
     error: countByStatus.error || 0
