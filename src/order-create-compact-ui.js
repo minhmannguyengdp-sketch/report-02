@@ -59,6 +59,15 @@ function mountOrderCreateCompactUi() {
       min-height:40px!important;
       font-weight:850!important;
     }
+    #modal[data-type="order-create"] #orderProvince,
+    #modal[data-type="order-create"] #orderDistrict,
+    #modal[data-type="order-create"] #orderGeoText{
+      min-height:36px!important;
+    }
+    #modal[data-type="order-create"] #orderGeoText{
+      font-size:14px!important;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;
+    }
     #modal[data-type="order-create"] .line{
       padding:9px 10px!important;
       border-radius:15px!important;
