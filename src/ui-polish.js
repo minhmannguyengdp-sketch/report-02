@@ -1,4 +1,4 @@
-import { installAppShellUi } from './app-shell-ui-owner.js?v=app-shell-ui-owner-1';
+import { installAppShellUi } from './app-shell-ui-owner.js?v=app-shell-ui-owner-2';
 
 // Test UI/flows: keep stable, do not refactor unless a Test-specific UI bug requires it.
 import './test-pull.js';
@@ -31,7 +31,7 @@ import './order-product-input-hint.js?v=product-input-hint-2';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
 // Revenue dashboard: read-only local summaries built from orders/order_items.
-import './revenue-ui.js?v=revenue-ui-1';
+import './revenue-ui.js?v=revenue-ui-2';
 
 // Shared business shell.
 import './business-ui-shells.js?v=ui-safe-1';
