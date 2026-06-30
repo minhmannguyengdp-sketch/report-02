@@ -9,6 +9,8 @@ const MCP_ROUTE_SESSION_COLUMNS = ['id', 'route_id', 'route_name', 'session_date
 const MCP_VISIT_COLUMNS = ['id', 'session_id', 'route_id', 'route_customer_id', 'visit_date', 'status', 'has_order', 'has_test', 'has_report', 'order_id', 'test_id', 'report_id', 'checkin_at', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const ORDER_COLUMNS = ['id', 'order_code', 'order_date', 'sales', 'customer_id', 'customer_name', 'customer_phone', 'area', 'delivery_address', 'source_type', 'source_id', 'status', 'subtotal', 'discount_total', 'grand_total', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const ORDER_ITEM_COLUMNS = ['id', 'order_id', 'product_id', 'product_name', 'sku', 'unit', 'quantity', 'unit_price', 'discount', 'line_total', 'note', 'raw_payload', 'created_at'];
+const ONA_TEST_COLUMNS = ['id', 'test_date', 'sales', 'customer_id', 'customer_name', 'customer_phone', 'area', 'shop_type', 'test_type', 'follow_date', 'need_sample', 'overall_status', 'overall_note', 'status', 'deleted_at', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
+const ONA_TEST_ITEM_COLUMNS = ['id', 'test_id', 'product_id', 'product_name', 'status', 'note', 'deleted_at', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const MARKET_REPORT_COLUMNS = ['id', 'report_date', 'sales', 'market_area', 'route_name', 'market_type', 'total_shops', 'competitor_summary', 'price_summary', 'demand_summary', 'company_product_summary', 'opportunity_summary', 'risk_summary', 'next_action', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 
 const BUSINESS_GROUPS = [
@@ -18,6 +20,8 @@ const BUSINESS_GROUPS = [
   { store: LOCAL_STORES.mcpVisits, table: 'mcp_visits', columns: MCP_VISIT_COLUMNS, label: 'lượt ghé' },
   { store: LOCAL_STORES.orders, table: 'orders', columns: ORDER_COLUMNS, label: 'đơn' },
   { store: LOCAL_STORES.orderItems, table: 'order_items', columns: ORDER_ITEM_COLUMNS, label: 'dòng đơn' },
+  { store: LOCAL_STORES.onaTests, table: 'ona_tests', columns: ONA_TEST_COLUMNS, label: 'test' },
+  { store: LOCAL_STORES.onaTestItems, table: 'ona_test_items', columns: ONA_TEST_ITEM_COLUMNS, label: 'dòng test' },
   { store: LOCAL_STORES.marketReports, table: 'market_reports', columns: MARKET_REPORT_COLUMNS, label: 'báo cáo' }
 ];
 
@@ -221,6 +225,13 @@ async function syncOrders() {
   return [{ label: 'đơn', count: pendingOrders.length, mode: 'push' }, { label: 'dòng đơn', count: scopedItems.length, mode: 'push' }];
 }
 
+async function syncTests() {
+  return [
+    await syncStore({ store: LOCAL_STORES.onaTests, table: 'ona_tests', columns: ONA_TEST_COLUMNS, label: 'test' }),
+    await syncStore({ store: LOCAL_STORES.onaTestItems, table: 'ona_test_items', columns: ONA_TEST_ITEM_COLUMNS, label: 'dòng test' })
+  ];
+}
+
 async function syncReports() {
   return [await syncStore({ store: LOCAL_STORES.marketReports, table: 'market_reports', columns: MARKET_REPORT_COLUMNS, label: 'báo cáo' })];
 }
@@ -262,6 +273,7 @@ export async function syncBusinessNow({ silent = false } = {}) {
     const results = [];
     results.push(await syncMcp());
     results.push(await syncOrders());
+    results.push(await syncTests());
     results.push(await syncReports());
     results.push(await pullBusiness());
     const pushed = summarizeByMode(results, 'push');
@@ -271,6 +283,7 @@ export async function syncBusinessNow({ silent = false } = {}) {
     window.dispatchEvent(new CustomEvent('mcp:session-changed'));
     window.dispatchEvent(new CustomEvent('report:changed'));
     window.dispatchEvent(new CustomEvent('order:changed'));
+    window.dispatchEvent(new CustomEvent('test:changed'));
     normalizeCloudLabels();
     return { total: pushed.total + pulled.total, detail: `push ${pushed.detail}; pull ${pulled.detail}` };
   } catch (error) {
