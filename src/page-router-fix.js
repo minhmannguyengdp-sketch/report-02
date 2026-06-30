@@ -1,7 +1,8 @@
 const shellPages = {
   mcp: { subtitle: 'MCP tuyến', nav: 'create' },
   'order-shell': { subtitle: 'Đơn hàng', nav: 'create' },
-  'report-shell': { subtitle: 'Báo cáo', nav: 'create' }
+  'report-shell': { subtitle: 'Báo cáo', nav: 'create' },
+  'revenue-shell': { subtitle: 'Doanh thu', nav: 'create' }
 };
 
 function setPage(page) {
