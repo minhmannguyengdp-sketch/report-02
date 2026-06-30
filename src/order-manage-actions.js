@@ -1,4 +1,5 @@
 import { LOCAL_STORES, getAllLocal, getLocal, putLocal } from '../local-db.js';
+import { isCancelled, makeCancelled } from './soft-delete.js';
 
 const money = new Intl.NumberFormat('vi-VN');
 const statusLabel = { draft: 'Nháp', pending_confirm: 'Chờ xác nhận', confirmed: 'Đã chốt', delivering: 'Đang giao', delivered: 'Đã giao', cancelled: 'Đã huỷ' };
@@ -71,16 +72,10 @@ function formatMoney(value = 0) {
 async function cancelOrder(orderId = '') {
   const order = await getLocal(LOCAL_STORES.orders, orderId);
   if (!order) return toast('Không tìm thấy đơn.');
-  if (order.status === 'cancelled') return toast('Đơn này đã huỷ rồi.');
+  if (isCancelled(order)) return toast('Đơn này đã huỷ rồi.');
   const ok = window.confirm(`Huỷ đơn của ${order.customer_name || 'khách này'}?\nĐơn chỉ chuyển trạng thái cancelled, không xoá khỏi máy.`);
   if (!ok) return;
-  await putLocal(LOCAL_STORES.orders, {
-    ...order,
-    status: 'cancelled',
-    sync_status: 'local',
-    updated_at: new Date().toISOString(),
-    raw_payload: { ...(order.raw_payload || {}), cancelled_at: new Date().toISOString(), cancel_source: 'local_ui' }
-  });
+  await putLocal(LOCAL_STORES.orders, makeCancelled(order, 'local_ui'));
   window.dispatchEvent(new CustomEvent('order:changed'));
   toast('Đã huỷ đơn. Doanh thu sẽ không tính đơn này.');
 }
@@ -116,7 +111,7 @@ async function exportOrderSlip(orderId = '') {
   const shipping = number(order.shipping_fee || order.raw_payload?.shipping_fee || 0);
   const grandTotal = number(order.grand_total || subtotal - discount + shipping || 0);
   const sourceText = order.raw_payload?.mcp_route_name ? `MCP · ${order.raw_payload.mcp_route_name}` : (order.source_type || 'manual');
-  const isCancelled = order.status === 'cancelled';
+  const cancelled = isCancelled(order);
 
   const rowsHtml = lines.map((line, index) => `
     <tr>
@@ -141,7 +136,7 @@ async function exportOrderSlip(orderId = '') {
 <body>
   <div class="toolbar"><button onclick="window.close()">Đóng</button><button class="primary" onclick="window.print()">In / Lưu PDF</button></div>
   <div class="sheet">
-    <div class="header"><div class="doc-head"><div class="doc-title">PHIẾU ĐƠN HÀNG</div><div class="doc-meta"><div><b>Mã đơn:</b> ${esc(orderCodeText)}</div><div><b>Ngày:</b> ${esc(order.order_date || '')}</div></div><div class="badge ${isCancelled ? 'cancelled' : ''}">${esc(statusText)}</div></div></div>
+    <div class="header"><div class="doc-head"><div class="doc-title">PHIẾU ĐƠN HÀNG</div><div class="doc-meta"><div><b>Mã đơn:</b> ${esc(orderCodeText)}</div><div><b>Ngày:</b> ${esc(order.order_date || '')}</div></div><div class="badge ${cancelled ? 'cancelled' : ''}">${esc(statusText)}</div></div></div>
     <div class="info-grid"><div class="box"><div class="box-title">Thông tin khách hàng</div><div class="info-row"><b>Khách:</b> ${esc(order.customer_name || 'Khách lẻ')}</div><div class="info-row"><b>SĐT:</b> ${esc(order.customer_phone || '-')}</div><div class="info-row"><b>Khu vực:</b> ${esc(order.area || '-')}</div><div class="info-row"><b>Địa chỉ:</b> ${esc(order.delivery_address || '-')}</div></div><div class="box"><div class="box-title">Thông tin đơn hàng</div><div class="info-row"><b>Sales:</b> ${esc(order.sales || '-')}</div><div class="info-row"><b>Nguồn:</b> ${esc(sourceText)}</div><div class="info-row"><b>Số dòng:</b> ${esc(lines.length)}</div><div class="info-row"><b>Trạng thái:</b> ${esc(statusText)}</div></div></div>
     <table><thead><tr><th style="width:28px">STT</th><th>Sản phẩm</th><th style="width:52px">ĐVT</th><th style="width:42px" class="right">SL</th><th style="width:78px" class="right">Đơn giá</th><th style="width:86px" class="right">Thành tiền</th></tr></thead><tbody>${rowsHtml || '<tr><td colspan="6" class="center muted">Chưa có sản phẩm.</td></tr>'}</tbody></table>
     <div class="totals-wrap"><div class="totals"><div class="total-row"><span>Tạm tính</span><b>${esc(formatMoney(subtotal))}</b></div><div class="total-row"><span>Giảm giá</span><b>${esc(formatMoney(discount))}</b></div><div class="total-row"><span>Phí giao hàng</span><b>${esc(formatMoney(shipping))}</b></div><div class="total-row grand"><span>Tổng thanh toán</span><span>${esc(formatMoney(grandTotal))}</span></div></div></div>
