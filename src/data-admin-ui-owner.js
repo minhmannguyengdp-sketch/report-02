@@ -5,4 +5,4 @@
 // Admin sync logic stays in supabase-sync.js and must remain imported separately.
 // Do not rename #syncBtn, #syncState, #dbInfo, or #adminStats without a sync audit.
 
-import './data-hub-shell.js?v=ui-boundary-1';
+import './data-hub-shell.js?v=data-hub-revenue-1';
