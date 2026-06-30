@@ -10,6 +10,8 @@ export function installAppShellUi() {
     .app{width:100%!important;max-width:none!important;margin:0!important;transform:none!important;overflow-x:hidden!important}
     main{width:100%!important;max-width:100%!important;overflow:hidden!important}
     .hero,.tabs{display:none!important}
+    section.page[data-page="create"] .panel{display:none!important}
+    section.page[data-page="create"] .grid-actions{margin-bottom:0!important}
     section.page[data-page="create"] .home-card,.nav button,.secondary,.primary,.sync-state,.head button,.mini{pointer-events:auto!important;touch-action:manipulation!important}
     section.page[data-page="create"] .home-card *,.nav button *{pointer-events:none!important}
     #dataList .test-actions *, .admin-actions *, #modal *, .mcp-page *, .shell-page *, .data-shell *, .ai-page *{pointer-events:auto!important}
