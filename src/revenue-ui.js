@@ -1,4 +1,5 @@
 import { getOrderRevenueDataset, buildRevenueSummary } from './order-summary.js?v=revenue-1';
+import { exportRevenueSummaryCsv, exportOrderDetailCsv } from './order-export-csv.js?v=csv-1';
 
 let currentRange = 'today';
 let currentTab = 'overview';
@@ -6,6 +7,15 @@ let activeContainer = null;
 
 function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
+function toast(message) {
+  const element = document.querySelector('#toast');
+  if (!element) return;
+  element.textContent = message;
+  element.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => element.classList.remove('show'), 2200);
 }
 
 function money(value = 0) {
@@ -56,7 +66,8 @@ function ensureCss() {
     .revenue-page .shell-title h1{margin:0;font-size:22px;color:#082337}.revenue-page .shell-title p{margin:3px 0 0;color:#63727c;font-size:12px;font-weight:800}
     .revenue-hero{border:1px solid #9bdccd;border-radius:20px;background:linear-gradient(135deg,#00957f,#007866);color:#fff;padding:14px;margin-bottom:10px;display:grid;gap:4px;box-shadow:0 12px 28px rgba(0,120,102,.16)}
     .revenue-hero b{font-size:18px}.revenue-hero small{opacity:.88;font-weight:850}
-    .revenue-filters{display:flex;gap:7px;overflow:auto;margin:0 0 10px;padding-bottom:1px}.revenue-filter{border:1px solid #d7e6e2;border-radius:999px;background:#fff;min-height:34px;padding:0 12px;white-space:nowrap;color:#17343d;font-size:12px;font-weight:950}.revenue-filter.active{background:#00957f;border-color:#00957f;color:#fff}
+    .revenue-filters{display:flex;gap:7px;overflow:auto;margin:0 0 8px;padding-bottom:1px}.revenue-filter{border:1px solid #d7e6e2;border-radius:999px;background:#fff;min-height:34px;padding:0 12px;white-space:nowrap;color:#17343d;font-size:12px;font-weight:950}.revenue-filter.active{background:#00957f;border-color:#00957f;color:#fff}
+    .revenue-export-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 10px}.revenue-export-actions button{border:1px solid #9bdccd;border-radius:14px;background:#fff;min-height:38px;color:#007866;font-size:12px;font-weight:950}.revenue-export-actions button:first-child{background:#eafff8}
     .revenue-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}.revenue-kpi{border:1px solid #dce8e5;border-radius:17px;background:#fff;padding:11px;display:grid;gap:3px;box-shadow:0 8px 18px rgba(12,55,50,.055)}.revenue-kpi b{font-size:20px;color:#082337;line-height:1.08}.revenue-kpi span{font-size:11px;color:#63727c;font-weight:850}
     .revenue-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:10px}.revenue-tab{border:1px solid #d7e6e2;border-radius:14px;background:#fff;min-height:38px;font-size:12px;font-weight:950;color:#17343d}.revenue-tab.active{background:#eafff8;border-color:#9bdccd;color:#007866}
     .revenue-list{display:grid;gap:8px}.revenue-row{border:1px solid #dce8e5;border-radius:16px;background:#fff;padding:10px;display:grid;gap:5px}.revenue-row-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.revenue-row b{color:#082337}.revenue-row strong{white-space:nowrap;color:#007866}.revenue-row small{color:#63727c;font-weight:800}.revenue-empty{border:1px dashed #cfe2dc;border-radius:16px;background:#fff;padding:18px;text-align:center;color:#63727c;font-weight:850}
@@ -107,6 +118,7 @@ function shellHtml(summary = {}) {
     <div class="revenue-filters">
       ${['today','7d','month','all'].map((range) => `<button type="button" class="revenue-filter ${currentRange === range ? 'active' : ''}" data-revenue-range="${range}">${esc(labelForRange(range))}</button>`).join('')}
     </div>
+    <div class="revenue-export-actions"><button type="button" data-revenue-export="summary">Xuất tổng hợp</button><button type="button" data-revenue-export="detail">Xuất chi tiết đơn</button></div>
     ${kpiHtml(kpis)}
     <div class="revenue-tabs">
       <button type="button" class="revenue-tab ${currentTab === 'overview' ? 'active' : ''}" data-revenue-tab="overview">Tổng</button>
@@ -137,7 +149,29 @@ function rerenderActive() {
   if (activeContainer?.isConnected) renderRevenueInto(activeContainer);
 }
 
+async function exportCurrent(kind = 'summary') {
+  const filters = filtersForRange();
+  try {
+    if (kind === 'detail') {
+      const result = await exportOrderDetailCsv(filters);
+      toast(`Đã xuất ${result.line_count || 0} dòng chi tiết.`);
+      return;
+    }
+    const kpis = await exportRevenueSummaryCsv(filters);
+    toast(`Đã xuất tổng hợp ${kpis.order_count || 0} đơn.`);
+  } catch (error) {
+    console.warn('revenue export failed', error);
+    toast('Không xuất được file doanh thu.');
+  }
+}
+
 document.addEventListener('click', (event) => {
+  const exportButton = event.target.closest('[data-revenue-export]');
+  if (exportButton) {
+    event.preventDefault();
+    exportCurrent(exportButton.dataset.revenueExport || 'summary');
+    return;
+  }
   const range = event.target.closest('[data-revenue-range]');
   if (range) {
     event.preventDefault();
