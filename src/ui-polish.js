@@ -35,7 +35,7 @@ import './mcp-report-actions.js?v=mcp-report-1';
 import './mcp-test-actions.js?v=mcp-test-1';
 
 // MCP ownership: scoped page/card/modal/import UI patches load via mcp-ui-owner.js.
-import './mcp-ui-owner.js?v=mcp-cancel-export-1';
+import './mcp-ui-owner.js?v=mcp-detail-toolbar-1';
 
 // Order ownership: order logic stays in order-ui.js; product picker only adds rows into the existing order form.
 import './order-ui.js?v=bepsi-catalog-1';
@@ -79,48 +79,16 @@ function ensureMcpCard(){
   if(!grid || grid.querySelector(':scope > [data-home-card="mcp"]'))return;
   const card=document.createElement('button');
   card.type='button';
-  card.className='card home-card card-mcp';
+  card.className='card';
   card.dataset.homeCard='mcp';
   card.dataset.page='mcp';
-  card.innerHTML='<i>🧭</i><b>MCP tuyến</b><small>Tuyến hôm nay và trạng thái ghé.</small><em>Xem UI</em>';
-  grid.insertBefore(card,grid.firstElementChild);
+  card.innerHTML='<b>MCP tuyến</b><small>Đi tuyến / ghé khách</small>';
+  const cards=homeCards();
+  const report=cards.find(el=>el.dataset.page==='report');
+  if(report?.nextSibling)grid.insertBefore(card,report.nextSibling);
+  else grid.appendChild(card);
 }
 
-function tuneHomeCards(){
-  ensureMcpCard();
-  homeCards().forEach(c=>{
-    const t=c.textContent||'';
-    if(c.dataset.homeCard==='revenue'||t.includes('Doanh thu')){
-      c.remove();
-      return;
-    }
-    c.classList.remove('is-hidden','card-mcp','card-order','card-test','card-report','card-revenue','home-card');
-    c.classList.add('home-card');
-    let i=c.querySelector('i'),b=c.querySelector('b'),sm=c.querySelector('small'),e=c.querySelector('em');
-
-    if(c.dataset.homeCard==='mcp'||t.includes('MCP')){
-      c.classList.add('card-mcp');
-      c.dataset.page='mcp';
-      if(i)i.textContent='🧭'; if(b)b.textContent='MCP tuyến'; if(sm)sm.textContent='Tuyến hôm nay và trạng thái ghé.'; if(e)e.textContent='Xem UI';
-    }else if(t.includes('Đơn')){
-      c.classList.add('card-order');
-      if(i)i.textContent='🧾'; if(b)b.textContent='Đơn hàng'; if(sm)sm.textContent='Tạo đơn nhanh theo khách/tuyến.'; if(e)e.textContent='Tạo đơn';
-    }else if(t.includes('Test')){
-      c.classList.add('card-test');
-      if(i)i.textContent='🧪'; if(b)b.textContent='Test sản phẩm'; if(sm)sm.textContent='Ghi nhận mẫu test và trạng thái.'; if(e)e.textContent='Tạo test';
-    }else if(t.includes('Báo cáo')){
-      c.classList.add('card-report');
-      if(i)i.textContent='📊'; if(b)b.textContent='Báo cáo thị trường'; if(sm)sm.textContent='Ghi nhận giá, đối thủ, nhu cầu.'; if(e)e.textContent='Tạo báo cáo';
-    }else{
-      c.classList.add('is-hidden');
-    }
-  });
-}
-
-function boot(){
-  installAppShellUi();
-  tuneHomeCards();
-}
-
-window.addEventListener('DOMContentLoaded',boot);
-boot();
+installAppShellUi();
+ensureMcpCard();
+window.addEventListener('DOMContentLoaded',ensureMcpCard);
