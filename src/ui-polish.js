@@ -17,6 +17,9 @@ import './page-router-fix.js?v=revenue-route-1';
 import './home-ui-owner.js?v=home-spacing-1';
 import './home-today-dashboard.js?v=home-compact-1';
 
+// Route visibility guard must load after Home dashboard CSS, because Home dashboard owns only Home and must never keep Home visible over other pages.
+import './route-visibility-guard.js?v=route-visibility-1';
+
 // App bottom navigation and compact sync status dot.
 import './bottom-nav-status-ui.js?v=bottom-nav-status-1';
 
