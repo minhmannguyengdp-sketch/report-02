@@ -21,11 +21,9 @@ import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './mcp-card-compact-ui.js?v=mcp-card-compact-2';
 import './mcp-import-ui.js?v=mcp-import-1';
 
-// Order ownership: order page/list/cards and order-create modal UI. Logic stays in order-ui.js.
+// Order ownership: order logic stays in order-ui.js; scoped UI patches load via order-ui-owner.js.
 import './order-ui.js?v=order-address-select-1';
-import './order-create-compact-ui.js?v=order-address-select-1';
-import './order-modal-lock-ui.js?v=order-modal-lock-1';
-import './order-card-compact-ui.js?v=order-card-compact-1';
+import './order-ui-owner.js?v=order-ui-owner-1';
 
 // Shared business shells and Report ownership.
 import './business-ui-shells.js?v=ui-safe-1';
