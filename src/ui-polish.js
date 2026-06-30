@@ -1,3 +1,4 @@
+// Test UI/flows: keep stable, do not refactor unless a Test-specific UI bug requires it.
 import './test-pull.js';
 import './compact-detail.js?v=test-detail-width-1';
 import './app-update.js';
@@ -5,9 +6,13 @@ import './test-export.js';
 import './modal-scroll-fix.js';
 import './modal-form-ui.js?v=ui-modal-zoom-1';
 import './test-file-modal-ui.js?v=test-file-modal-1';
+
+// Core routing/data shell. Import order is intentionally preserved from the pre-audit baseline.
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
+
+// MCP ownership: route/session UI, customer cards, MCP actions, and MCP-specific modals.
 import './mcp-order-actions.js?v=mcp-order-compact-1';
 import './mcp-report-actions.js?v=mcp-report-1';
 import './mcp-test-actions.js?v=mcp-test-1';
@@ -15,14 +20,22 @@ import './mcp-order-modal-ui.js?v=mcp-order-modal-1';
 import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './mcp-card-compact-ui.js?v=mcp-card-compact-2';
 import './mcp-import-ui.js?v=mcp-import-1';
+
+// Order ownership: order page/list/cards and order-create modal UI. Logic stays in order-ui.js.
 import './order-ui.js?v=order-address-select-1';
 import './order-create-compact-ui.js?v=order-address-select-1';
 import './order-modal-lock-ui.js?v=order-modal-lock-1';
 import './order-card-compact-ui.js?v=order-card-compact-1';
+
+// Shared business shells and Report ownership.
 import './business-ui-shells.js?v=ui-safe-1';
 import './report-ui.js?v=report-local-1';
 import './report-modal-ui.js?v=report-modal-1';
+
+// MCP management compact UI loaded after shared shell patches to keep existing override behavior.
 import './mcp-manage-actions-compact-ui.js?v=mcp-manage-row-1';
+
+// Sync/Admin/AI. Do not rename #syncBtn/#syncState/#dbInfo/#adminStats without sync audit.
 import './supabase-sync.js?v=supabase-sync-1';
 import './ai-agent-settings.js';
 
