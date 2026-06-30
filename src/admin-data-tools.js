@@ -1,4 +1,4 @@
-import { LOCAL_STORES, getAllLocal, clearLocalStore, openLocalDb, localStats } from '../local-db.js';
+import { LOCAL_STORES, getAllLocal, putManyLocal, clearLocalStore, openLocalDb, localStats } from '../local-db.js';
 
 const ALL_STORES = Object.values(LOCAL_STORES);
 const BUSINESS_CLEAR_STORES = ALL_STORES;
@@ -29,6 +29,33 @@ function saveJson(filename, data) {
   setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
+function readJsonFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { resolve(JSON.parse(String(reader.result || '{}'))); }
+      catch (error) { reject(error); }
+    };
+    reader.onerror = () => reject(reader.error || new Error('Không đọc được file backup.'));
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+function normalizeRestoreRows(rows = []) {
+  return Array.isArray(rows) ? rows.filter((row) => row && typeof row === 'object') : [];
+}
+
+function validateBackupPayload(payload = {}) {
+  if (!payload || typeof payload !== 'object') throw new Error('File backup không hợp lệ.');
+  if (payload.kind !== 'local-indexeddb-backup') throw new Error('Không đúng loại backup của Bếp Sỉ Báo Cáo.');
+  if (!payload.stores || typeof payload.stores !== 'object') throw new Error('Backup thiếu dữ liệu stores.');
+  const rowsByStore = {};
+  for (const store of ALL_STORES) rowsByStore[store] = normalizeRestoreRows(payload.stores[store]);
+  const total = Object.values(rowsByStore).reduce((sum, rows) => sum + rows.length, 0);
+  if (!total) throw new Error('Backup không có dòng dữ liệu để khôi phục.');
+  return { rowsByStore, total };
+}
+
 async function backupLocalJson() {
   const stores = {};
   const counts = {};
@@ -51,6 +78,30 @@ async function backupLocalJson() {
   saveJson(`bep-si-backup-local-${stamp()}.json`, payload);
   const total = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
   toast(`Đã tải backup JSON: ${total} dòng.`);
+}
+
+async function restoreBackupJson(file) {
+  if (!file) return;
+  const payload = await readJsonFile(file);
+  const { rowsByStore, total } = validateBackupPayload(payload);
+  const exportedAt = payload.exported_at ? `\nNgày backup: ${payload.exported_at}` : '';
+  const step1 = window.confirm(`Khôi phục backup JSON vào máy này?\nTổng dữ liệu sẽ ghi/ghi đè theo ID: ${total} dòng.${exportedAt}\n\nThao tác này không tự xoá dữ liệu cũ. Muốn restore sạch thì Clear dữ liệu máy trước.`);
+  if (!step1) return;
+  const typed = window.prompt('Xác nhận lần 2: nhập đúng KHOI PHUC để import backup.');
+  if (typed !== 'KHOI PHUC') return toast('Đã huỷ khôi phục backup.');
+  let restored = 0;
+  for (const store of ALL_STORES) {
+    const rows = rowsByStore[store];
+    if (!rows.length) continue;
+    await putManyLocal(store, rows);
+    restored += rows.length;
+  }
+  window.dispatchEvent(new CustomEvent('mcp:session-changed'));
+  window.dispatchEvent(new CustomEvent('order:changed'));
+  window.dispatchEvent(new CustomEvent('report:changed'));
+  window.dispatchEvent(new CustomEvent('test:changed'));
+  await refreshStats(`Đã khôi phục backup: ${restored} dòng.`);
+  toast(`Đã khôi phục ${restored} dòng từ backup.`);
 }
 
 async function refreshStats(extra = '') {
@@ -114,7 +165,7 @@ function installStyle() {
   }
   style.textContent = `
     .admin-data-tools{margin:0 0 12px!important;border:1px solid #dce8e5!important;border-radius:18px!important;background:#fff!important;padding:12px!important;box-shadow:0 8px 20px rgba(12,55,50,.05)!important;display:grid!important;gap:9px!important}
-    .admin-data-tools b{font-size:14px!important;color:#082337!important}.admin-data-tools small{font-size:11px!important;color:#63727c!important;line-height:1.25!important}.admin-data-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}.admin-data-actions button{min-height:40px!important;border-radius:12px!important;font-size:12px!important;font-weight:950!important}.admin-clear-danger{border:1px solid #fecaca!important;background:#fff7f7!important;color:#b91c1c!important}.admin-clear-warn{border:1px solid #fed7aa!important;background:#fff7ed!important;color:#b45309!important}@media(max-width:380px){.admin-data-actions{grid-template-columns:1fr!important}}
+    .admin-data-tools b{font-size:14px!important;color:#082337!important}.admin-data-tools small{font-size:11px!important;color:#63727c!important;line-height:1.25!important}.admin-data-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}.admin-data-actions button{min-height:40px!important;border-radius:12px!important;font-size:12px!important;font-weight:950!important}.admin-clear-danger{border:1px solid #fecaca!important;background:#fff7f7!important;color:#b91c1c!important}.admin-clear-warn{border:1px solid #fed7aa!important;background:#fff7ed!important;color:#b45309!important}.admin-restore-safe{border:1px solid #bbf7d0!important;background:#f0fdf4!important;color:#15803d!important}@media(max-width:380px){.admin-data-actions{grid-template-columns:1fr!important}}
   `;
 }
 
@@ -126,7 +177,7 @@ function mountTools() {
   const block = document.createElement('article');
   block.className = 'admin-data-tools';
   block.dataset.adminDataTools = '1';
-  block.innerHTML = `<div><b>Backup / dữ liệu máy</b><br><small>Backup JSON trước khi xoá. Clear dữ liệu máy có xác nhận 2 lớp.</small></div><div class="admin-data-actions"><button type="button" class="secondary" data-admin-backup-json>Backup JSON</button><button type="button" class="secondary admin-clear-warn" data-admin-clear-queue-errors>Xoá queue lỗi</button><button type="button" class="secondary admin-clear-danger" data-admin-clear-local>Clear dữ liệu máy</button></div>`;
+  block.innerHTML = `<div><b>Backup / dữ liệu máy</b><br><small>Backup JSON trước khi xoá. Import backup sẽ ghi/ghi đè theo ID, không tự xoá dữ liệu cũ.</small></div><div class="admin-data-actions"><button type="button" class="secondary" data-admin-backup-json>Backup JSON</button><button type="button" class="secondary admin-restore-safe" data-admin-restore-json>Import backup</button><button type="button" class="secondary admin-clear-warn" data-admin-clear-queue-errors>Xoá queue lỗi</button><button type="button" class="secondary admin-clear-danger" data-admin-clear-local>Clear dữ liệu máy</button></div><input type="file" accept="application/json,.json" data-admin-restore-file hidden>`;
   if (firstCard) firstCard.insertAdjacentElement('afterend', block);
   else page.appendChild(block);
   refreshStats().catch(() => null);
@@ -134,8 +185,17 @@ function mountTools() {
 
 document.addEventListener('click', (event) => {
   if (event.target.closest('[data-admin-backup-json]')) { event.preventDefault(); backupLocalJson().catch((error) => { console.warn(error); toast('Backup JSON lỗi.'); }); return; }
+  if (event.target.closest('[data-admin-restore-json]')) { event.preventDefault(); document.querySelector('[data-admin-restore-file]')?.click(); return; }
   if (event.target.closest('[data-admin-clear-queue-errors]')) { event.preventDefault(); clearErrorSyncQueue().catch((error) => { console.warn(error); toast('Xoá queue lỗi thất bại.'); }); return; }
   if (event.target.closest('[data-admin-clear-local]')) { event.preventDefault(); clearAllLocalData().catch((error) => { console.warn(error); toast('Clear dữ liệu máy thất bại.'); }); }
+}, true);
+
+document.addEventListener('change', (event) => {
+  const input = event.target.closest('[data-admin-restore-file]');
+  if (!input) return;
+  const file = input.files?.[0];
+  input.value = '';
+  restoreBackupJson(file).catch((error) => { console.warn(error); toast(error.message || 'Import backup thất bại.'); });
 }, true);
 
 window.addEventListener('DOMContentLoaded', mountTools);
