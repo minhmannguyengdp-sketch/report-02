@@ -12,14 +12,13 @@ import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
 
-// MCP ownership: route/session UI, customer cards, MCP actions, and MCP-specific modals.
+// MCP actions/business adapters. Keep custom events and MCP action behavior unchanged.
 import './mcp-order-actions.js?v=mcp-order-compact-1';
 import './mcp-report-actions.js?v=mcp-report-1';
 import './mcp-test-actions.js?v=mcp-test-1';
-import './mcp-order-modal-ui.js?v=mcp-order-modal-1';
-import './mcp-ui-shell.js?v=mcp-customer-manage-1';
-import './mcp-card-compact-ui.js?v=mcp-card-compact-2';
-import './mcp-import-ui.js?v=mcp-import-1';
+
+// MCP ownership: scoped page/card/modal/import UI patches load via mcp-ui-owner.js.
+import './mcp-ui-owner.js?v=mcp-ui-owner-1';
 
 // Order ownership: order logic stays in order-ui.js; scoped UI patches load via order-ui-owner.js.
 import './order-ui.js?v=order-address-select-1';
