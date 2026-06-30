@@ -9,8 +9,6 @@ const MCP_ROUTE_SESSION_COLUMNS = ['id', 'route_id', 'route_name', 'session_date
 const MCP_VISIT_COLUMNS = ['id', 'session_id', 'route_id', 'route_customer_id', 'visit_date', 'status', 'has_order', 'has_test', 'has_report', 'order_id', 'test_id', 'report_id', 'checkin_at', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const ORDER_COLUMNS = ['id', 'order_code', 'order_date', 'sales', 'customer_id', 'customer_name', 'customer_phone', 'area', 'delivery_address', 'source_type', 'source_id', 'status', 'subtotal', 'discount_total', 'grand_total', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const ORDER_ITEM_COLUMNS = ['id', 'order_id', 'product_id', 'product_name', 'sku', 'unit', 'quantity', 'unit_price', 'discount', 'line_total', 'note', 'raw_payload', 'created_at'];
-const ONA_TEST_COLUMNS = ['id', 'test_date', 'sales', 'customer_id', 'customer_name', 'customer_phone', 'area', 'shop_type', 'test_type', 'follow_date', 'need_sample', 'overall_status', 'overall_note', 'status', 'deleted_at', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
-const ONA_TEST_ITEM_COLUMNS = ['id', 'test_id', 'product_id', 'product_name', 'status', 'note', 'deleted_at', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const MARKET_REPORT_COLUMNS = ['id', 'report_date', 'sales', 'market_area', 'route_name', 'market_type', 'total_shops', 'competitor_summary', 'price_summary', 'demand_summary', 'company_product_summary', 'opportunity_summary', 'risk_summary', 'next_action', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 
 const BUSINESS_GROUPS = [
@@ -20,8 +18,6 @@ const BUSINESS_GROUPS = [
   { store: LOCAL_STORES.mcpVisits, table: 'mcp_visits', columns: MCP_VISIT_COLUMNS, label: 'lượt ghé' },
   { store: LOCAL_STORES.orders, table: 'orders', columns: ORDER_COLUMNS, label: 'đơn' },
   { store: LOCAL_STORES.orderItems, table: 'order_items', columns: ORDER_ITEM_COLUMNS, label: 'dòng đơn' },
-  { store: LOCAL_STORES.onaTests, table: 'ona_tests', columns: ONA_TEST_COLUMNS, label: 'test' },
-  { store: LOCAL_STORES.onaTestItems, table: 'ona_test_items', columns: ONA_TEST_ITEM_COLUMNS, label: 'dòng test' },
   { store: LOCAL_STORES.marketReports, table: 'market_reports', columns: MARKET_REPORT_COLUMNS, label: 'báo cáo' }
 ];
 
@@ -134,6 +130,18 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function deletedAt(row = {}) {
+  return row.deleted_at || row.raw_payload?.deleted_at || null;
+}
+
+function cloudStatus(row = {}) {
+  return deletedAt(row) || row.status === 'deleted' ? 'deleted' : 'active';
+}
+
+function rawPayload(row = {}, extra = {}) {
+  return { ...(row.raw_payload || {}), ...extra };
+}
+
 function needsSync(row = {}) {
   if (row.sync_status !== 'synced' || !row.synced_at) return true;
   const changedAt = row.updated_at || row.created_at || '';
@@ -226,9 +234,200 @@ async function syncOrders() {
 }
 
 async function syncTests() {
+  const [tests, items] = await Promise.all([
+    getAllLocal(LOCAL_STORES.onaTests),
+    getAllLocal(LOCAL_STORES.onaTestItems)
+  ]);
+  const pendingTests = tests.filter(needsSync);
+  const pendingItems = items.filter(needsSync);
+  if (!pendingTests.length && !pendingItems.length) {
+    return [
+      { label: 'file test', count: 0, mode: 'push' },
+      { label: 'SP test', count: 0, mode: 'push' },
+      { label: 'khách test', count: 0, mode: 'push' },
+      { label: 'kết quả test', count: 0, mode: 'push' }
+    ];
+  }
+
+  const syncedAt = nowIso();
+  const testsById = new Map(tests.map((row) => [row.id, row]));
+  const files = pendingTests.filter((row) => row.raw_payload?.kind === 'test_file');
+  const customers = pendingTests.filter((row) => row.raw_payload?.kind === 'test_customer');
+  const fileProducts = pendingItems.filter((item) => testsById.get(item.test_id)?.raw_payload?.kind === 'test_file');
+  const customerResults = pendingItems.filter((item) => testsById.get(item.test_id)?.raw_payload?.kind === 'test_customer');
+
+  const fileRows = files.map((file) => ({
+    id: file.id,
+    title: file.customer_name || 'File test',
+    test_date: file.test_date || null,
+    sales: file.sales || '',
+    note: file.overall_note || '',
+    sync_status: 'synced',
+    status: cloudStatus(file),
+    deleted_at: deletedAt(file),
+    raw_payload: rawPayload(file, { kind: 'test_file' }),
+    created_at: file.created_at || syncedAt,
+    updated_at: file.updated_at || syncedAt,
+    synced_at: syncedAt
+  }));
+
+  const productRows = fileProducts.map((item, index) => ({
+    id: item.id,
+    file_id: item.test_id,
+    product_name: item.product_name || '',
+    sort_order: Number.isFinite(Number(item.sort_order)) ? Number(item.sort_order) : index,
+    created_at: item.created_at || syncedAt,
+    updated_at: item.updated_at || syncedAt,
+    status: cloudStatus(item),
+    deleted_at: deletedAt(item),
+    sync_status: 'synced',
+    raw_payload: rawPayload(item, { kind: 'selected_product' }),
+    synced_at: syncedAt
+  }));
+
+  const customerRows = customers.map((customer) => ({
+    id: customer.id,
+    file_id: customer.raw_payload?.file_id || '',
+    customer_name: customer.customer_name || '',
+    phone: customer.customer_phone || '',
+    area: customer.area || '',
+    status: deletedAt(customer) || customer.status === 'deleted' ? 'deleted' : (customer.overall_status || 'pending'),
+    note: customer.overall_note || '',
+    sync_status: 'synced',
+    created_at: customer.created_at || syncedAt,
+    updated_at: customer.updated_at || syncedAt,
+    deleted_at: deletedAt(customer),
+    raw_payload: rawPayload(customer, { kind: 'test_customer', file_id: customer.raw_payload?.file_id || '' }),
+    synced_at: syncedAt
+  }));
+
+  const resultRows = customerResults.map((item) => {
+    const customer = testsById.get(item.test_id) || {};
+    return {
+      id: item.id,
+      file_id: customer.raw_payload?.file_id || '',
+      customer_id: item.test_id,
+      product_id: item.product_id || '',
+      product_name: item.product_name || '',
+      status: deletedAt(item) || item.status === 'deleted' ? 'deleted' : (item.status || 'pending'),
+      note: item.note || '',
+      created_at: item.created_at || syncedAt,
+      updated_at: item.updated_at || syncedAt,
+      deleted_at: deletedAt(item),
+      sync_status: 'synced',
+      raw_payload: rawPayload(item, { kind: 'test_result' }),
+      synced_at: syncedAt
+    };
+  });
+
+  await upsert('test_files', fileRows);
+  await upsert('test_file_products', productRows);
+  await upsert('test_customers', customerRows);
+  await upsert('test_customer_results', resultRows);
+  for (const row of pendingTests) await putLocal(LOCAL_STORES.onaTests, markSynced(row, syncedAt));
+  for (const row of pendingItems) await putLocal(LOCAL_STORES.onaTestItems, markSynced(row, syncedAt));
   return [
-    await syncStore({ store: LOCAL_STORES.onaTests, table: 'ona_tests', columns: ONA_TEST_COLUMNS, label: 'test' }),
-    await syncStore({ store: LOCAL_STORES.onaTestItems, table: 'ona_test_items', columns: ONA_TEST_ITEM_COLUMNS, label: 'dòng test' })
+    { label: 'file test', count: fileRows.length, mode: 'push' },
+    { label: 'SP test', count: productRows.length, mode: 'push' },
+    { label: 'khách test', count: customerRows.length, mode: 'push' },
+    { label: 'kết quả test', count: resultRows.length, mode: 'push' }
+  ];
+}
+
+async function pullTests() {
+  const [files, products, customers, results] = await Promise.all([
+    fetchRows('test_files'),
+    fetchRows('test_file_products'),
+    fetchRows('test_customers'),
+    fetchRows('test_customer_results')
+  ]);
+  const filesById = new Map(files.map((file) => [file.id, file]));
+  const localTests = [
+    ...files.map((file) => ({
+      id: file.id,
+      test_date: file.test_date || null,
+      sales: file.sales || '',
+      customer_id: '',
+      customer_name: file.title || 'File test',
+      customer_phone: '',
+      area: '',
+      shop_type: '',
+      test_type: 'Test sản phẩm',
+      follow_date: null,
+      need_sample: false,
+      overall_status: file.status === 'deleted' ? 'deleted' : 'pending',
+      overall_note: file.note || '',
+      status: file.status === 'deleted' ? 'deleted' : undefined,
+      deleted_at: file.deleted_at || null,
+      sync_status: 'synced',
+      raw_payload: rawPayload(file, { kind: 'test_file' }),
+      created_at: file.created_at || nowIso(),
+      updated_at: file.updated_at || file.created_at || nowIso(),
+      synced_at: file.synced_at || nowIso()
+    })),
+    ...customers.map((customer) => {
+      const file = filesById.get(customer.file_id) || {};
+      return {
+        id: customer.id,
+        test_date: file.test_date || customer.created_at || null,
+        sales: file.sales || '',
+        customer_id: '',
+        customer_name: customer.customer_name || '',
+        customer_phone: customer.phone || '',
+        area: customer.area || '',
+        shop_type: '',
+        test_type: 'Test sản phẩm',
+        follow_date: null,
+        need_sample: false,
+        overall_status: customer.status === 'deleted' ? 'deleted' : (customer.status || 'pending'),
+        overall_note: customer.note || '',
+        status: customer.status === 'deleted' ? 'deleted' : undefined,
+        deleted_at: customer.deleted_at || null,
+        sync_status: 'synced',
+        raw_payload: rawPayload(customer, { kind: 'test_customer', file_id: customer.file_id || '' }),
+        created_at: customer.created_at || nowIso(),
+        updated_at: customer.updated_at || customer.created_at || nowIso(),
+        synced_at: customer.synced_at || nowIso()
+      };
+    })
+  ];
+  const localItems = [
+    ...products.map((product) => ({
+      id: product.id,
+      test_id: product.file_id || '',
+      product_id: '',
+      product_name: product.product_name || '',
+      status: product.status === 'deleted' ? 'deleted' : 'pending',
+      note: '',
+      deleted_at: product.deleted_at || null,
+      sync_status: 'synced',
+      raw_payload: rawPayload(product, { kind: 'selected_product', source: 'cloud' }),
+      created_at: product.created_at || nowIso(),
+      updated_at: product.updated_at || product.created_at || nowIso(),
+      synced_at: product.synced_at || nowIso()
+    })),
+    ...results.map((result) => ({
+      id: result.id,
+      test_id: result.customer_id || '',
+      product_id: result.product_id || '',
+      product_name: result.product_name || '',
+      status: result.status === 'deleted' ? 'deleted' : (result.status || 'pending'),
+      note: result.note || '',
+      deleted_at: result.deleted_at || null,
+      sync_status: 'synced',
+      raw_payload: rawPayload(result, { kind: 'test_result', file_id: result.file_id || '' }),
+      created_at: result.created_at || nowIso(),
+      updated_at: result.updated_at || result.created_at || nowIso(),
+      synced_at: result.synced_at || nowIso()
+    }))
+  ];
+  await putManyLocal(LOCAL_STORES.onaTests, localTests);
+  await putManyLocal(LOCAL_STORES.onaTestItems, localItems);
+  return [
+    { label: 'file test', count: files.length, mode: 'pull' },
+    { label: 'SP test', count: products.length, mode: 'pull' },
+    { label: 'khách test', count: customers.length, mode: 'pull' },
+    { label: 'kết quả test', count: results.length, mode: 'pull' }
   ];
 }
 
@@ -239,6 +438,7 @@ async function syncReports() {
 async function pullBusiness() {
   const results = [];
   for (const group of BUSINESS_GROUPS) results.push(await pullStore(group));
+  results.push(await pullTests());
   return results;
 }
 
