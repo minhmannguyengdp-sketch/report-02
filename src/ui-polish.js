@@ -25,7 +25,7 @@ import './mcp-test-actions.js?v=mcp-test-1';
 import './mcp-ui-owner.js?v=mcp-ui-owner-1';
 
 // Order ownership: order logic stays in order-ui.js; scoped UI patches load via order-ui-owner.js.
-import './order-ui.js?v=order-address-select-1';
+import './order-ui.js?v=bepsi-catalog-1';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
 // Shared business shell.
