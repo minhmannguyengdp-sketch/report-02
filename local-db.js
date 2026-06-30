@@ -66,6 +66,10 @@ function ensureBusinessIndexes(store) {
   if (!store.indexNames.contains('updated_at')) store.createIndex('updated_at', 'updated_at', { unique: false });
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
 export function openLocalDb() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
@@ -131,6 +135,72 @@ export async function clearLocalStore(storeName) {
   const tx = db.transaction(storeName, 'readwrite');
   tx.objectStore(storeName).clear();
   await txDone(tx);
+}
+
+export async function getMeta(key, fallback = null) {
+  if (!key) return fallback;
+  const row = await getLocal(LOCAL_STORES.meta, key);
+  return row && Object.prototype.hasOwnProperty.call(row, 'value') ? row.value : fallback;
+}
+
+export async function setMeta(key, value) {
+  if (!key) throw new Error('Meta key is required.');
+  const row = { key, value, updated_at: nowIso() };
+  const db = await openLocalDb();
+  const tx = db.transaction(LOCAL_STORES.meta, 'readwrite');
+  tx.objectStore(LOCAL_STORES.meta).put(row);
+  await txDone(tx);
+  return value;
+}
+
+export async function enqueueLocalSync(type, sourceId, payload = {}) {
+  if (!type) throw new Error('Sync job thiếu type.');
+  if (!sourceId) throw new Error('Sync job thiếu source_id.');
+  const timestamp = nowIso();
+  const job = {
+    id: `${type}:${sourceId}:${Date.now()}`,
+    type,
+    source_id: sourceId,
+    payload,
+    status: 'pending',
+    attempts: 0,
+    last_error: '',
+    created_at: timestamp,
+    updated_at: timestamp
+  };
+  await putLocal(LOCAL_STORES.syncQueue, job);
+  return job;
+}
+
+export async function getSyncQueue() {
+  const rows = await getAllLocal(LOCAL_STORES.syncQueue);
+  return rows.sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || '')));
+}
+
+export async function updateSyncJob(id, patch = {}) {
+  if (!id) throw new Error('Sync job id is required.');
+  const current = await getLocal(LOCAL_STORES.syncQueue, id);
+  const next = {
+    ...(current || { id, created_at: nowIso() }),
+    ...patch,
+    id,
+    updated_at: nowIso()
+  };
+  if (patch.status === 'error') next.attempts = Number(current?.attempts || 0) + 1;
+  await putLocal(LOCAL_STORES.syncQueue, next);
+  return next;
+}
+
+export async function clearDoneSyncJobs() {
+  const rows = await getAllLocal(LOCAL_STORES.syncQueue);
+  const done = rows.filter((row) => row.status === 'done' || row.status === 'synced');
+  if (!done.length) return 0;
+  const db = await openLocalDb();
+  const tx = db.transaction(LOCAL_STORES.syncQueue, 'readwrite');
+  const store = tx.objectStore(LOCAL_STORES.syncQueue);
+  done.forEach((row) => store.delete(row.id));
+  await txDone(tx);
+  return done.length;
 }
 
 export async function localStats() {
