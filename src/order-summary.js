@@ -8,9 +8,11 @@ function text(value = '', fallback = '') {
   return clean || fallback;
 }
 
-function number(value = 0) {
+function number(value = 0, fallback = 0) {
   const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+  if (Number.isFinite(n)) return n;
+  const f = Number(fallback);
+  return Number.isFinite(f) ? f : 0;
 }
 
 function dateValue(order = {}) {
@@ -80,7 +82,7 @@ function routeIdOf(order = {}) {
 function lineAmount(item = {}) {
   const quantity = number(item.quantity);
   const unitPrice = number(item.unit_price);
-  return number(item.line_total, quantity * unitPrice) || quantity * unitPrice;
+  return number(item.line_total, quantity * unitPrice);
 }
 
 function normalizeLine(order = {}, item = {}) {
