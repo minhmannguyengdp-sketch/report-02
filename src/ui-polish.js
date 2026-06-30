@@ -13,6 +13,9 @@ import './test-file-modal-ui.js?v=test-file-modal-1';
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js?v=revenue-route-1';
 
+// Home ownership: visual-only home launcher, floating cloud chip, and background decoration.
+import './home-ui-owner.js?v=home-ui-owner-1';
+
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
 import './data-admin-ui-owner.js?v=data-admin-ui-owner-1';
 
