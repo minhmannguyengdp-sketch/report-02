@@ -97,15 +97,27 @@ function productRow(name = '', quantity = 1, price = '') {
   return `<div class="mcp-order-line" data-mcp-order-line><input data-mcp-order-product placeholder="Sản phẩm" value="${esc(name)}"><input data-mcp-order-qty type="number" inputmode="numeric" min="1" value="${esc(quantity)}"><input data-mcp-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(price)}"><button type="button" class="secondary" data-mcp-order-remove-line>×</button></div>`;
 }
 
+function rowChoiceMap(row) {
+  return Object.fromEntries([...row.querySelectorAll('[data-order-choice]')].map((select) => [select.dataset.orderChoiceKey || 'choice', select.value || '']).filter(([, value]) => value));
+}
+
 function readLines() {
-  return [...document.querySelectorAll('#modal[data-type="mcp-order"] [data-mcp-order-line]')].map((row) => {
-    const quantity = Math.max(1, Number(row.querySelector('[data-mcp-order-qty]')?.value || 1));
-    const unitPrice = Math.max(0, Number(row.querySelector('[data-mcp-order-price]')?.value || 0));
+  return [...document.querySelectorAll('#modal[data-type="mcp-order"] [data-mcp-order-line], #modal[data-type="mcp-order"] [data-order-line]')].map((row) => {
+    const quantity = Math.max(1, Number(row.querySelector('[data-mcp-order-qty], [data-order-qty]')?.value || 1));
+    const unitPrice = Math.max(0, Number(row.querySelector('[data-mcp-order-price], [data-order-price]')?.value || 0));
+    const choices = rowChoiceMap(row);
     return {
-      product_name: row.querySelector('[data-mcp-order-product]')?.value.trim() || '',
+      product_id: row.querySelector('[data-mcp-order-product-id], [data-order-product-id]')?.value || '',
+      product_name: row.querySelector('[data-mcp-order-product], [data-order-product]')?.value.trim() || '',
+      sku: row.querySelector('[data-mcp-order-sku], [data-order-sku]')?.value || '',
+      unit: row.querySelector('[data-mcp-order-unit], [data-order-unit]')?.value || '',
       quantity,
       unit_price: unitPrice,
-      line_total: quantity * unitPrice
+      line_total: quantity * unitPrice,
+      raw_payload: {
+        source: row.querySelector('[data-mcp-order-product-id], [data-order-product-id]')?.value ? 'product_catalog' : 'manual',
+        choices
+      }
     };
   }).filter((line) => line.product_name);
 }
@@ -131,7 +143,7 @@ async function openMcpOrderModal(customerId) {
   const dialog = document.querySelector('#modal');
   if (!dialog) return;
   dialog.dataset.type = 'mcp-order';
-  dialog.innerHTML = `<form class="modal" data-mcp-order-form data-customer-id="${esc(customer.id)}"><header><h2>Tạo đơn từ MCP</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${customerSummary({ detail, customer, routeName })}<div class="line"><b>Sản phẩm</b><div id="mcpOrderLines">${productRow()}</div><button type="button" class="secondary wide" data-mcp-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="mcpOrderNote" rows="2"></textarea></label><div class="total" id="mcpOrderTotal"><b>Tổng: 0đ</b></div><button class="primary">Lưu đơn</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-mcp-order-form data-customer-id="${esc(customer.id)}"><header><h2>Tạo đơn từ MCP</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${customerSummary({ detail, customer, routeName })}<div class="line"><b>Sản phẩm</b><button type="button" class="order-product-trigger" data-order-open-picker><span>+ Chọn sản phẩm</span><small>Lọc ngành · chọn nhiều mã</small></button><div id="mcpOrderLines">${productRow()}</div><button type="button" class="secondary wide" data-mcp-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="mcpOrderNote" rows="2"></textarea></label><div class="total" id="mcpOrderTotal"><b>Tổng: 0đ</b></div><button class="primary">Lưu đơn</button></div></form>`;
   if (!dialog.open) dialog.showModal();
   updateTotal();
   document.querySelector('[data-mcp-order-product]')?.focus();
@@ -267,10 +279,10 @@ function boot() {
 
 window.addEventListener('click', handleClick, true);
 document.addEventListener('input', (event) => {
-  if (event.target.closest('#modal[data-type="mcp-order"] [data-mcp-order-line]')) updateTotal();
+  if (event.target.closest('#modal[data-type="mcp-order"] [data-mcp-order-line], #modal[data-type="mcp-order"] [data-order-line]')) updateTotal();
 });
 document.addEventListener('change', (event) => {
-  if (event.target.closest('#modal[data-type="mcp-order"] [data-mcp-order-line]')) updateTotal();
+  if (event.target.closest('#modal[data-type="mcp-order"] [data-mcp-order-line], #modal[data-type="mcp-order"] [data-order-line]')) updateTotal();
 });
 document.addEventListener('submit', (event) => {
   if (!event.target.matches('[data-mcp-order-form]')) return;
