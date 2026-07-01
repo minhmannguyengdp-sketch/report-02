@@ -3,7 +3,6 @@
 
 const PAGE_SELECTOR = 'section.page[data-page="mcp"]';
 const PANEL_ID = 'mcpMoreFilterPanel';
-let observer = null;
 let enhancing = false;
 
 function ensureStyle() {
@@ -15,16 +14,17 @@ function ensureStyle() {
   }
 
   style.textContent = `
-    ${PAGE_SELECTOR}.active{scroll-padding-top:12px!important}
+    ${PAGE_SELECTOR}.active{scroll-padding-top:0!important}
     ${PAGE_SELECTOR}.active .mcp-route-card{
       position:sticky!important;
-      top:8px!important;
-      z-index:8!important;
+      top:0!important;
+      z-index:9!important;
       margin:0 0 7px!important;
       box-shadow:0 8px 20px rgba(15,118,110,.13)!important;
       transform:none!important;
       will-change:auto!important;
       backface-visibility:hidden!important;
+      contain:paint!important;
     }
     ${PAGE_SELECTOR}.active .mcp-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important;margin:0 0 7px!important;position:relative!important;z-index:1!important}
     ${PAGE_SELECTOR}.active .mcp-stat{min-width:0!important;padding:8px 4px!important;border-radius:12px!important}
@@ -184,21 +184,6 @@ function scheduleEnhance(delay = 80) {
   scheduleEnhance.timer = setTimeout(enhanceMcpToolbar, delay);
 }
 
-function observeMcpPage() {
-  const page = document.querySelector(PAGE_SELECTOR);
-  if (!page || observer) return;
-  observer = new MutationObserver((mutations) => {
-    if (enhancing) return;
-    const relevant = mutations.some((mutation) => {
-      if (mutation.type !== 'childList') return false;
-      const target = mutation.target;
-      return target === page || target.classList?.contains('mcp-list-wrap') || target.classList?.contains('mcp-filters');
-    });
-    if (relevant) scheduleEnhance(120);
-  });
-  observer.observe(page, { childList: true, subtree: true });
-}
-
 window.addEventListener('click', (event) => {
   const toggle = event.target.closest('[data-mcp-toolbar-toggle]');
   if (toggle && toggle.closest(PAGE_SELECTOR)) {
@@ -209,14 +194,16 @@ window.addEventListener('click', (event) => {
   }
 
   const panelButton = event.target.closest(`#${PANEL_ID} button`);
-  if (panelButton) setPanelOpen(false);
-  else if (!event.target.closest(`#${PANEL_ID}`) && !event.target.closest('[data-mcp-toolbar-toggle]')) setPanelOpen(false);
+  if (panelButton) {
+    setPanelOpen(false);
+    scheduleEnhance(80);
+    return;
+  }
 
-  scheduleEnhance(160);
+  if (!event.target.closest(`#${PANEL_ID}`) && !event.target.closest('[data-mcp-toolbar-toggle]')) setPanelOpen(false);
 }, true);
 
-window.addEventListener('DOMContentLoaded', () => { observeMcpPage(); scheduleEnhance(0); });
-window.addEventListener('mcp:session-changed', () => { observeMcpPage(); scheduleEnhance(100); });
-window.addEventListener('hashchange', () => scheduleEnhance(100));
-observeMcpPage();
+window.addEventListener('DOMContentLoaded', () => scheduleEnhance(0));
+window.addEventListener('mcp:session-changed', () => scheduleEnhance(120));
+window.addEventListener('hashchange', () => scheduleEnhance(120));
 scheduleEnhance(0);
