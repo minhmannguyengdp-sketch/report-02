@@ -1,10 +1,10 @@
-import './smart-report-bridge.js?v=smart-report-bridge-1';
+import './smart-report-flow.js?v=smart-report-flow-1';
 import './copy-clean.js?v=copy-clean-1';
 
 function render(){
   const page=document.querySelector('[data-page="ai"]');
   if(!page)return;
-  page.innerHTML=`<div class="ai-page-head"><div class="ai-page-title"><h1>Báo cáo thông minh</h1><p>Tạo báo cáo điều hành từ MCP, đơn hàng, test sản phẩm và báo cáo thị trường.</p></div></div><div class="ai-page-body"><article class="ai-hero"><b>Tổng hợp dữ liệu bán hàng</b><small>Hệ thống đọc dữ liệu đã nhập, rút ra điểm chính và đề xuất việc cần làm tiếp theo.</small></article><section class="ai-panel"><h2>Báo cáo điều hành</h2><div class="ai-status-pill"><div><b>Dữ liệu sẵn sàng</b><small>Tổng hợp khách cần xử lý, sản phẩm nổi bật, cơ hội và rủi ro.</small></div><span class="ai-badge">Sẵn sàng</span></div><button class="ai-run-btn" type="button" id="aiBtn">Tạo báo cáo</button><p>Sau khi tạo xong, có thể chỉnh nội dung, lưu lại hoặc xuất TXT.</p></section><section class="ai-panel smart-report-result" id="aiResult"><h2>Kết quả phân tích</h2><p>Chưa có kết quả. Bấm “Tạo báo cáo” để tổng hợp dữ liệu.</p></section><section class="ai-panel" id="smartReportSaved"><h2>Báo cáo đã lưu</h2><p>Chưa có báo cáo đã lưu.</p></section></div>`;
+  page.innerHTML=`<div class="ai-page-head"><div class="ai-page-title"><h1>Báo cáo thông minh</h1><p>Tạo báo cáo điều hành từ MCP, đơn hàng, test sản phẩm và báo cáo thị trường.</p></div></div><div class="ai-page-body"><article class="ai-hero"><b>Tổng hợp dữ liệu bán hàng</b><small>Hệ thống đọc dữ liệu đã nhập, rút ra điểm chính và đề xuất việc cần làm tiếp theo.</small></article><section class="ai-panel"><h2>Báo cáo điều hành</h2><div class="ai-status-pill"><div><b>Dữ liệu sẵn sàng</b><small>Tổng hợp khách cần xử lý, sản phẩm nổi bật, cơ hội và rủi ro.</small></div><span class="ai-badge">Sẵn sàng</span></div><button class="ai-run-btn" type="button" id="smartReportRun">Tạo báo cáo</button><p>Sau khi tạo xong, có thể chỉnh nội dung, lưu lại hoặc xuất TXT.</p></section><section class="ai-panel smart-report-result" id="aiResult"><h2>Kết quả phân tích</h2><p>Chưa có kết quả. Bấm “Tạo báo cáo” để tổng hợp dữ liệu.</p></section><section class="ai-panel" id="smartReportSaved"><h2>Báo cáo đã lưu</h2><p>Chưa có báo cáo đã lưu.</p></section></div>`;
 }
 function css(){
   let s=document.querySelector('style[data-smart-report-page]');
