@@ -2,13 +2,12 @@ import { makeAiSummary } from '../data-model.js';
 import { LOCAL_STORES, openLocalDb, getAllLocal, putLocal } from '../local-db.js';
 
 const AGENT_ROW_ID = 'ai-agent-config-selected';
-const RAW_JSON_KEY = 'ai_agent_builder_json';
-let cfg = { supabaseUrl: '', supabaseKey: '' };
+let cfg = { supabaseUrl: '', supabaseKey: '', aiConfigured: false, aiAgentName: '' };
 let parsedAgents = [];
 let rawJson = null;
+let selectedAgentId = '';
 
 const $ = (selector, root = document) => root.querySelector(selector);
-const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const esc = (value = '') => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 
 function toast(message) {
@@ -27,6 +26,8 @@ async function loadConfig() {
     const json = await response.json();
     cfg.supabaseUrl = String(json.supabaseUrl || '').replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
     cfg.supabaseKey = json.supabaseKey || '';
+    cfg.aiConfigured = Boolean(json.aiConfigured);
+    cfg.aiAgentName = json.aiAgentName || '';
   } catch (error) {
     console.warn('AI config load failed', error);
   }
@@ -51,9 +52,12 @@ function headers(extra = {}) {
 }
 
 function addCss() {
-  if ($('style[data-ai-agent-settings]')) return;
-  const style = document.createElement('style');
-  style.dataset.aiAgentSettings = '1';
+  let style = $('style[data-ai-agent-settings]');
+  if (!style) {
+    style = document.createElement('style');
+    style.dataset.aiAgentSettings = '1';
+    document.head.appendChild(style);
+  }
   style.textContent = `
     [data-page="ai"]{height:100%;min-height:0;overflow:hidden!important;display:none}
     [data-page="ai"].active{display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;gap:10px!important}
@@ -73,28 +77,45 @@ function addCss() {
     .ai-agent-pill div{min-width:0}.ai-agent-pill b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ai-agent-pill small{display:block;color:#63727c;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ai-badge{border-radius:999px;background:#e1f8f1;color:#007866;font-weight:950;font-size:10px;padding:4px 7px;white-space:nowrap}
     .ai-run-btn{border:0;border-radius:13px;background:linear-gradient(135deg,#00957f,#007866);color:#fff;font-weight:950;min-height:40px}
-    #modal[data-type="ai-agent"]{width:min(410px,calc(100vw - 20px));max-height:calc(100dvh - 20px)}
-    #modal[data-type="ai-agent"] .modal{gap:10px!important;max-height:calc(100dvh - 20px);overflow:hidden}
-    .ai-agent-form{min-height:0;overflow-y:auto;display:grid;gap:10px;padding-right:2px}
-    .ai-json-load{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
-    .ai-json-load textarea{width:100%;min-height:112px;resize:vertical;border:1px solid #cad7d4;border-radius:13px;padding:9px;font-size:12px;line-height:1.35;background:#fbfffd}
-    .ai-agent-list{display:grid;gap:7px}.ai-agent-option{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start;border:1px solid #dce8e5;border-radius:13px;background:#fff;padding:9px}.ai-agent-option b{display:block;font-size:13px}.ai-agent-option small{display:block;color:#63727c;font-size:11px;line-height:1.25;word-break:break-word}
-    .ai-agent-empty{border:1px dashed #dce8e5;border-radius:13px;background:#fbfffd;color:#63727c;font-size:12px;text-align:center;padding:12px;margin:0}
-    .ai-save-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ai-save-row button{min-height:38px}
+    #modal[data-type="ai-agent"]{width:min(420px,calc(100vw - 18px))!important;max-height:calc(100dvh - 18px)!important;overflow:hidden!important;padding:0!important;border-radius:18px!important}
+    #modal[data-type="ai-agent"] .modal{height:min(760px,calc(100dvh - 18px))!important;max-height:calc(100dvh - 18px)!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;gap:10px!important;padding:14px!important;box-sizing:border-box!important}
+    #modal[data-type="ai-agent"] header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;min-width:0!important}
+    #modal[data-type="ai-agent"] header h2{font-size:17px!important;line-height:1.15!important;margin:0!important;min-width:0!important}
+    #modal[data-type="ai-agent"] header button{min-height:32px!important;border-radius:999px!important;padding:0 10px!important;white-space:nowrap!important}
+    .ai-agent-form{min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;display:grid!important;gap:10px!important;padding-right:2px!important;align-content:start!important}
+    .ai-agent-form label{display:grid!important;gap:4px!important;margin:0!important;min-width:0!important}.ai-agent-form span{font-size:11px!important;font-weight:900!important;color:#52616b!important}
+    .ai-json-load{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;align-items:stretch!important;min-width:0!important}
+    .ai-json-load textarea{width:100%!important;min-height:104px!important;max-height:32dvh!important;resize:vertical!important;border:1px solid #cad7d4!important;border-radius:13px!important;padding:9px!important;font-size:12px!important;line-height:1.35!important;background:#fbfffd!important;box-sizing:border-box!important;overflow:auto!important}
+    .ai-load-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}.ai-load-actions button{min-height:36px!important;border-radius:11px!important;font-size:12px!important;font-weight:900!important;min-width:0!important}
+    .ai-agent-list{display:grid!important;gap:7px!important}.ai-agent-option{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:8px!important;align-items:start!important;border:1px solid #dce8e5!important;border-radius:13px!important;background:#fff!important;padding:9px!important;min-width:0!important}.ai-agent-option b{display:block!important;font-size:13px!important;line-height:1.15!important}.ai-agent-option small{display:block!important;color:#63727c!important;font-size:11px!important;line-height:1.25!important;word-break:break-word!important;overflow-wrap:anywhere!important}
+    .ai-agent-empty{border:1px dashed #dce8e5!important;border-radius:13px!important;background:#fbfffd!important;color:#63727c!important;font-size:12px!important;text-align:center!important;padding:12px!important;margin:0!important}
+    .ai-save-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;position:sticky!important;bottom:0!important;background:#fff!important;padding-top:6px!important}.ai-save-row button{min-height:38px!important}
   `;
-  document.head.appendChild(style);
+}
+
+function firstValue(obj = {}, keys = []) {
+  for (const key of keys) {
+    const value = obj?.[key];
+    if (value !== undefined && value !== null && String(value).trim()) return value;
+  }
+  return '';
 }
 
 function pickName(obj, fallback) {
-  return obj.displayName || obj.display_name || obj.name || obj.agentName || obj.agent_name || obj.title || obj.id || fallback;
+  return firstValue(obj, ['displayName', 'display_name', 'name', 'agentName', 'agent_name', 'title', 'resourceName', 'id']) || fallback;
 }
 
 function pickId(obj, fallback) {
-  return obj.id || obj.agentId || obj.agent_id || obj.name || fallback;
+  return firstValue(obj, ['id', 'agentId', 'agent_id', 'name', 'resourceName', 'resource_name', 'uid']) || fallback;
 }
 
 function summarizeAgent(obj) {
-  return obj.description || obj.instruction || obj.instructions || obj.system_instruction || obj.goal || obj.model || obj.type || 'Agent Builder JSON';
+  const value = firstValue(obj, ['description', 'instruction', 'instructions', 'systemInstruction', 'system_instruction', 'prompt', 'defaultPrompt', 'goal', 'model', 'type']);
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') return value.name || value.model || JSON.stringify(value).slice(0, 180);
+  if (obj?.tools && Array.isArray(obj.tools)) return `${obj.tools.length} tool`; 
+  if (obj?.flow || obj?.playbook || obj?.orchestration) return 'Agent flow / playbook';
+  return 'AI Agent config';
 }
 
 function normalizeAgent(obj, index) {
@@ -103,27 +124,63 @@ function normalizeAgent(obj, index) {
   return { id, name, description: String(summarizeAgent(obj)), raw: obj };
 }
 
+function looksLikeAgent(obj = {}) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+  const name = pickName(obj, '');
+  return Boolean(
+    name
+    || obj.agent
+    || obj.agentConfig
+    || obj.agent_config
+    || obj.instruction
+    || obj.instructions
+    || obj.systemInstruction
+    || obj.system_instruction
+    || obj.prompt
+    || obj.playbook
+    || obj.flow
+    || obj.model
+    || obj.tools
+  );
+}
+
 function collectAgents(value) {
   const candidates = [];
   const seen = new Set();
-  const arrays = [];
-  if (Array.isArray(value)) arrays.push(value);
-  if (value && typeof value === 'object') {
-    ['agents', 'agentConfigs', 'agent_configs', 'agentEngines', 'agent_engines', 'apps', 'tools'].forEach((key) => {
-      if (Array.isArray(value[key])) arrays.push(value[key]);
-    });
-  }
-  if (!arrays.length && value && typeof value === 'object') arrays.push([value]);
-  arrays.flat().forEach((item, index) => {
-    if (!item || typeof item !== 'object') return;
-    const looksAgent = pickName(item, '') || item.instruction || item.instructions || item.tools || item.model || item.flow || item.playbook;
-    if (!looksAgent) return;
-    const agent = normalizeAgent(item, candidates.length);
+  const visited = new WeakSet();
+  const preferredArrayKeys = new Set(['agents', 'agentConfigs', 'agent_configs', 'agentEngines', 'agent_engines', 'apps', 'resources', 'playbooks', 'flows', 'deployments']);
+
+  function add(obj) {
+    const agent = normalizeAgent(obj, candidates.length);
     const key = `${agent.id}::${agent.name}`;
     if (seen.has(key)) return;
     seen.add(key);
     candidates.push(agent);
-  });
+  }
+
+  function scan(node, depth = 0) {
+    if (!node || depth > 9) return;
+    if (Array.isArray(node)) {
+      node.forEach((item) => scan(item, depth + 1));
+      return;
+    }
+    if (typeof node !== 'object') return;
+    if (visited.has(node)) return;
+    visited.add(node);
+
+    if (looksLikeAgent(node)) add(node);
+
+    for (const [key, child] of Object.entries(node)) {
+      if (!child || typeof child !== 'object') continue;
+      if (preferredArrayKeys.has(key) || Array.isArray(child) || key === 'data' || key === 'result' || key === 'agent' || key === 'agentConfig' || key === 'agent_config') {
+        scan(child, depth + 1);
+      } else if (depth < 5) {
+        scan(child, depth + 1);
+      }
+    }
+  }
+
+  scan(value, 0);
   return candidates;
 }
 
@@ -163,18 +220,18 @@ async function saveSelectedAgent() {
     id: AGENT_ROW_ID,
     title: `Agent config · ${agent.name}`,
     summary_type: 'agent_config',
-    source_filters: { source: 'google_agent_builder_json', agent_count: parsedAgents.length, selected_agent_id: agent.id },
-    source_refs: parsedAgents.map((item) => ({ id: item.id, name: item.name })),
+    source_filters: { source: rawJson?.source || 'ai_agent_config', agent_count: parsedAgents.length, selected_agent_id: agent.id },
+    source_refs: parsedAgents.map((item) => ({ id: item.id, name: item.name, description: item.description })),
     result: { selected_agent: agent, raw_json: rawJson },
     status: 'active',
     agent_id: agent.id,
     agent_name: agent.name,
-    note: 'Saved from Google Agent Builder JSON'
+    note: 'Saved from AI Agent config'
   });
   await putLocal(LOCAL_STORES.aiSummaries, row);
   try {
     const synced = await upsertSupabaseAgent(row);
-    toast(synced ? 'Đã lưu agent lên Supabase' : 'Đã lưu agent local, chưa có Supabase/online');
+    toast(synced ? 'Đã lưu agent lên Supabase' : 'Đã lưu agent local');
   } catch (error) {
     console.warn('save AI agent to supabase failed', error);
     toast('Đã lưu local, Supabase lỗi');
@@ -183,17 +240,17 @@ async function saveSelectedAgent() {
   await renderAiPage();
 }
 
-function renderAgentOptions() {
+function renderAgentOptions(forceSelectedId = selectedAgentId) {
   const box = $('#aiAgentList');
   const count = $('#aiAgentCount');
   if (count) count.textContent = `${parsedAgents.length} agent`;
   if (!box) return;
   box.innerHTML = parsedAgents.length ? parsedAgents.map((agent, index) => `
     <label class="ai-agent-option">
-      <input type="radio" name="aiAgentChoice" value="${esc(agent.id)}" ${index === 0 ? 'checked' : ''}>
-      <span><b>${esc(agent.name)}</b><small>${esc(agent.id)} · ${esc(agent.description).slice(0, 160)}</small></span>
+      <input type="radio" name="aiAgentChoice" value="${esc(agent.id)}" ${(forceSelectedId ? agent.id === forceSelectedId : index === 0) ? 'checked' : ''}>
+      <span><b>${esc(agent.name)}</b><small>${esc(agent.id)} · ${esc(agent.description).slice(0, 180)}</small></span>
     </label>
-  `).join('') : '<p class="ai-agent-empty">Chưa load JSON. Dán JSON hoặc chọn file export từ Google Agent Builder.</p>';
+  `).join('') : '<p class="ai-agent-empty">Chưa có agent. Dán JSON, chọn file JSON hoặc bấm “Load server”.</p>';
 }
 
 function parseTextareaJson() {
@@ -202,10 +259,32 @@ function parseTextareaJson() {
   try {
     rawJson = JSON.parse(text);
     parsedAgents = collectAgents(rawJson);
+    selectedAgentId = parsedAgents[0]?.id || '';
     renderAgentOptions();
-    toast(`Đã load ${parsedAgents.length} agent`);
+    toast(parsedAgents.length ? `Đã load ${parsedAgents.length} agent` : 'Đã đọc JSON nhưng chưa tìm thấy agent');
   } catch (error) {
     toast('JSON không hợp lệ');
+  }
+}
+
+async function loadRemoteAgent() {
+  try {
+    const response = await fetch('/api/ai-agent', { cache: 'no-store' });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok || json.ok === false) throw new Error(json.error || `HTTP ${response.status}`);
+    rawJson = { source: 'ai_agent_server', ...json };
+    parsedAgents = collectAgents(json.data || json.agents || json);
+    if (!parsedAgents.length && json.configured) {
+      parsedAgents = [normalizeAgent({ id: 'server-agent', name: json.agentName || cfg.aiAgentName || 'AI Agent', description: json.agentUrl || 'AI_AGENT_URL', source: 'ai_agent_server' }, 0)];
+    }
+    selectedAgentId = parsedAgents[0]?.id || '';
+    const input = $('#aiAgentJson');
+    if (input) input.value = JSON.stringify(rawJson, null, 2);
+    renderAgentOptions();
+    toast(parsedAgents.length ? `Đã load ${parsedAgents.length} agent từ server` : 'Server chưa cấu hình agent');
+  } catch (error) {
+    console.warn('load remote AI agent failed', error);
+    toast('Không load được agent server');
   }
 }
 
@@ -228,23 +307,24 @@ async function openAgentModal() {
   if (!modal) return;
   modal.dataset.type = 'ai-agent';
   const saved = await getSavedAgent();
-  parsedAgents = saved?.source_refs?.map((item, index) => normalizeAgent(item, index)) || [];
   rawJson = saved?.result?.raw_json || null;
+  parsedAgents = rawJson ? collectAgents(rawJson) : (saved?.source_refs?.map((item, index) => normalizeAgent(item, index)) || []);
+  selectedAgentId = saved?.agent_id || parsedAgents[0]?.id || '';
   modal.innerHTML = `
     <div class="modal">
       <header><h2>Cài đặt AI Agent</h2><button type="button" data-ai-agent-close>Đóng</button></header>
       <div class="ai-agent-form">
         <div class="ai-json-load">
-          <label><span>Google Agent Builder JSON</span><textarea id="aiAgentJson" placeholder="Dán JSON export hoặc load file .json">${rawJson ? esc(JSON.stringify(rawJson, null, 2)) : ''}</textarea></label>
-          <button class="secondary" type="button" data-ai-load-json>Load JSON</button>
+          <label><span>Agent JSON / Server response</span><textarea id="aiAgentJson" placeholder="Dán JSON export hoặc bấm Load server / chọn file .json">${rawJson ? esc(JSON.stringify(rawJson, null, 2)) : ''}</textarea></label>
+          <div class="ai-load-actions"><button class="secondary" type="button" data-ai-load-json>Load JSON</button><button class="secondary" type="button" data-ai-load-server>Load server</button></div>
         </div>
         <label><span>Chọn file JSON</span><input id="aiAgentFile" type="file" accept="application/json,.json"></label>
-        <div class="ai-agent-pill"><div><b>Agent trong project</b><small>Load JSON xong sẽ hiện danh sách để chọn</small></div><span class="ai-badge" id="aiAgentCount">0 agent</span></div>
+        <div class="ai-agent-pill"><div><b>Agent trong project</b><small>${cfg.aiConfigured ? `Server: ${esc(cfg.aiAgentName || 'đã cấu hình')}` : 'Chưa có AI_AGENT_URL ở server hoặc dùng JSON local'}</small></div><span class="ai-badge" id="aiAgentCount">0 agent</span></div>
         <div class="ai-agent-list" id="aiAgentList"></div>
         <div class="ai-save-row"><button class="secondary" type="button" data-ai-agent-close>Hủy</button><button class="primary" type="button" data-ai-save-agent>Lưu agent</button></div>
       </div>
     </div>`;
-  renderAgentOptions();
+  renderAgentOptions(selectedAgentId);
   modal.showModal();
 }
 
@@ -256,13 +336,13 @@ async function renderAiPage() {
   const agentName = saved?.agent_name || 'Chưa chọn agent';
   page.innerHTML = `
     <div class="ai-page-head">
-      <div class="ai-page-title"><h1>AI tổng hợp</h1><p>Chọn agent Google Agent Builder để tổng hợp dữ liệu MCP / Đơn / Test / Báo cáo.</p></div>
+      <div class="ai-page-title"><h1>AI tổng hợp</h1><p>Chọn agent thật từ server hoặc JSON để tổng hợp dữ liệu MCP / Đơn / Test / Báo cáo.</p></div>
       <button class="ai-config-btn" type="button" data-open-ai-agent>⚙ Agent</button>
     </div>
     <div class="ai-page-body">
       <article class="ai-hero"><b>Agent báo cáo công ty</b><small>Agent được lưu local và đồng bộ Supabase qua bảng ai_summaries để không bị trôi cấu hình.</small></article>
-      <div class="ai-metrics"><div class="ai-metric"><b>${esc(agentCount)}</b><span>Agent JSON</span></div><div class="ai-metric"><b>${saved ? '1' : '0'}</b><span>Đã chọn</span></div><div class="ai-metric"><b>${hasSupabase() ? 'ON' : 'Local'}</b><span>Supabase</span></div></div>
-      <section class="ai-panel"><h2>Agent đang dùng</h2><div class="ai-agent-pill"><div><b>${esc(agentName)}</b><small>${saved ? esc(saved.agent_id || '') : 'Bấm Agent để load JSON và lưu agent.'}</small></div><span class="ai-badge">${saved?.status || 'draft'}</span></div><button class="ai-run-btn" type="button" id="aiBtn">Tạo báo cáo AI</button><p>Phần chạy AI backend chưa nối. Màn này chỉ cài agent và giữ cấu hình ổn định.</p></section>
+      <div class="ai-metrics"><div class="ai-metric"><b>${esc(agentCount)}</b><span>Agent</span></div><div class="ai-metric"><b>${saved ? '1' : '0'}</b><span>Đã chọn</span></div><div class="ai-metric"><b>${cfg.aiConfigured ? 'Agent' : (hasSupabase() ? 'ON' : 'Local')}</b><span>Kết nối</span></div></div>
+      <section class="ai-panel"><h2>Agent đang dùng</h2><div class="ai-agent-pill"><div><b>${esc(agentName)}</b><small>${saved ? esc(saved.agent_id || '') : 'Bấm Agent để load server/JSON và lưu agent.'}</small></div><span class="ai-badge">${saved?.status || 'draft'}</span></div><button class="ai-run-btn" type="button" id="aiBtn">Tạo báo cáo AI</button><p>Hiện đã chọn/lưu agent thật. Nút tạo báo cáo đang tạo bản tổng hợp local có thể chỉnh rồi lưu.</p></section>
     </div>`;
 }
 
@@ -283,6 +363,11 @@ function wire() {
       parseTextareaJson();
       return;
     }
+    if (event.target.closest('[data-ai-load-server]')) {
+      event.preventDefault();
+      await loadRemoteAgent();
+      return;
+    }
     if (event.target.closest('[data-ai-save-agent]')) {
       event.preventDefault();
       await saveSelectedAgent();
@@ -290,6 +375,7 @@ function wire() {
   }, true);
   document.addEventListener('change', async (event) => {
     if (event.target?.id === 'aiAgentFile') await loadJsonFile(event.target.files?.[0]);
+    if (event.target?.name === 'aiAgentChoice') selectedAgentId = event.target.value;
   }, true);
 }
 
