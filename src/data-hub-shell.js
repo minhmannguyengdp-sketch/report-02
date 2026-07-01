@@ -150,7 +150,7 @@ async function sessionCard(session) {
   const orders = Number(stats.order_count || 0);
   const tests = Number(stats.test_count || 0);
   const reports = Number(stats.report_count || 0);
-  return `<article class="data-shell-card mcp-session-card" data-mcp-session-id="${esc(session.id)}" role="button" tabindex="0"><div class="shell-card-head"><div><h3>${esc(formatDate(session.session_date))} · ${esc(routeName)}</h3><small>${esc(area)}${session.sales ? ` · Sales: ${esc(session.sales)}` : ''}</small><small>${planned} khách · ${visited} đã ghé · ${orders} đơn · ${tests} test · ${reports} báo cáo</small></div><span class="shell-badge green">${esc(session.status || 'active')}</span></div><div class="shell-actions"><button type="button" class="primary-lite" data-mcp-open-session="${esc(session.id)}">Mở phiên</button><button type="button" data-mcp-open-session="${esc(session.id)}">Chi tiết</button></div></article>`;
+  return `<article class="data-shell-card mcp-session-card" data-mcp-session-id="${esc(session.id)}" role="button" tabindex="0" aria-label="Mở chi tiết phiên tuyến ${esc(routeName)}"><div class="shell-card-head"><div><h3>${esc(formatDate(session.session_date))} · ${esc(routeName)}</h3><small>${esc(area)}${session.sales ? ` · Sales: ${esc(session.sales)}` : ''}</small><small>${planned} khách · ${visited} đã ghé · ${orders} đơn · ${tests} test · ${reports} báo cáo</small></div><span class="shell-badge green">${esc(session.status || 'active')}</span></div><div class="shell-actions"></div></article>`;
 }
 
 async function renderMcpShell(shell) {
