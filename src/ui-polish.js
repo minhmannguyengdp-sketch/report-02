@@ -63,7 +63,7 @@ import './supabase-sync.js?v=supabase-sync-1';
 import './pwa-install-ui.js?v=pwa-install-1';
 
 // AI ownership: AI page/settings adapter loads after sync to preserve current behavior.
-import './ai-ui-owner.js?v=ai-ui-owner-1';
+import './ai-ui-owner.js?v=ai-ui-owner-2';
 
 function homeGrid(){
   return document.querySelector('section.page[data-page="create"] .grid-actions');
