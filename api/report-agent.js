@@ -1,3 +1,7 @@
+export const config = {
+  maxDuration: 60
+};
+
 function safeJsonParse(value = '') {
   try {
     return JSON.parse(value);
@@ -14,6 +18,16 @@ async function readBody(req) {
   return safeJsonParse(Buffer.concat(chunks).toString('utf8')) || {};
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 55000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function fallbackResult(reason = 'Agent Platform chưa trả kết quả.') {
   return {
     summary: reason,
@@ -24,11 +38,12 @@ function fallbackResult(reason = 'Agent Platform chưa trả kết quả.') {
     follow_up_list: [],
     order_opportunities: [],
     risks: [reason],
-    next_steps: ['Kiểm tra AGENT_BUILDER_API_KEY / AGENT_BUILDER_PROJECT_ID / AGENT_BUILDER_AGENT_ID và API quickstart của Agent Platform.']
+    next_steps: ['Kiểm tra AI_AGENT_URL trong Vercel Production env và log Cloud Run / Vercel Function.']
   };
 }
 
 function normalizeResult(result) {
+  if (!result) return fallbackResult('Agent không trả result.');
   if (typeof result === 'string') return fallbackResult(result);
   return {
     summary: String(result?.summary || result?.answer || result?.text || ''),
@@ -62,7 +77,7 @@ function buildPrompt(input) {
 }
 
 async function callJson(url, body, apiKey) {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -70,7 +85,7 @@ async function callJson(url, body, apiKey) {
       'x-goog-api-key': apiKey
     },
     body: JSON.stringify(body)
-  });
+  }, 18000);
   const text = await response.text();
   return { ok: response.ok, status: response.status, text, json: safeJsonParse(text) || { content: text } };
 }
@@ -89,15 +104,36 @@ export default async function handler(req, res) {
   if (directUrl) {
     try {
       const token = process.env.AI_AGENT_TOKEN || process.env.ADK_AGENT_TOKEN || '';
-      const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+      const headers = { 'Content-Type': 'application/json; charset=utf-8', Accept: 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
-      const response = await fetch(directUrl, { method: 'POST', headers, body: JSON.stringify({ input, snapshot: input, task: 'report_analysis' }) });
+      const response = await fetchWithTimeout(directUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ input, snapshot: input, task: 'report_analysis' })
+      }, 55000);
       const text = await response.text();
       const json = safeJsonParse(text) || { content: text };
-      res.status(200).json({ ok: response.ok, source: 'ai_agent_url', status: response.status, result: normalizeResult(extractResult(json)), raw: json });
+      const result = normalizeResult(extractResult(json));
+      res.status(200).json({
+        ok: response.ok && json.ok !== false,
+        source: 'ai_agent_url',
+        status: response.status,
+        result,
+        raw: json,
+        directUrlConfigured: true
+      });
       return;
     } catch (error) {
-      res.status(200).json({ ok: false, source: 'ai_agent_url_exception', error: error?.message || 'AI_AGENT_URL failed', result: fallbackResult(error?.message || 'AI_AGENT_URL failed') });
+      const reason = error?.name === 'AbortError'
+        ? 'Proxy Vercel gọi Cloud Run quá lâu hoặc bị timeout.'
+        : (error?.message || 'AI_AGENT_URL failed');
+      res.status(200).json({
+        ok: false,
+        source: 'ai_agent_url_exception',
+        error: reason,
+        directUrlConfigured: true,
+        result: fallbackResult(reason)
+      });
       return;
     }
   }
@@ -109,8 +145,8 @@ export default async function handler(req, res) {
     res.status(200).json({
       ok: false,
       source: 'missing_agent_platform_env',
-      configState: { hasApiKey: Boolean(apiKey), hasProjectId: Boolean(projectId), hasAgentId: Boolean(agentId) },
-      result: fallbackResult('Thiếu AGENT_BUILDER_API_KEY / AGENT_BUILDER_PROJECT_ID / AGENT_BUILDER_AGENT_ID trong Vercel Production env.')
+      configState: { hasApiKey: Boolean(apiKey), hasProjectId: Boolean(projectId), hasAgentId: Boolean(agentId), hasAiAgentUrl: Boolean(directUrl) },
+      result: fallbackResult('Thiếu AI_AGENT_URL trong Vercel Production env. Giá trị đúng: https://report-agent-375343885071.asia-southeast1.run.app/analyze')
     });
     return;
   }
@@ -154,8 +190,8 @@ export default async function handler(req, res) {
   res.status(200).json({
     ok: false,
     source: 'agent_platform_candidates_failed',
-    configState: { projectId, agentId, location, hasApiKey: true },
+    configState: { projectId, agentId, location, hasApiKey: true, hasAiAgentUrl: false },
     attempts,
-    result: fallbackResult('Đã có key/project/agent id nhưng chưa trúng endpoint Agent Platform. Cần copy API quickstart/curl của chính agent để map đúng REST method.')
+    result: fallbackResult('Chưa có AI_AGENT_URL nên proxy rơi về endpoint Agent Platform cũ và fail. Set AI_AGENT_URL trong Vercel Production env.')
   });
 }
