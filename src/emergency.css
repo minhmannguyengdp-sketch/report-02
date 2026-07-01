@@ -36,3 +36,18 @@ dialog{width:min(400px,calc(100vw - 18px))!important;max-height:calc(100dvh - 18
 #modal[data-type=customer] label span{display:block!important;margin:0 0 5px!important;line-height:1.2!important;white-space:normal!important}
 #modal[data-type=customer] input,#modal[data-type=customer] textarea{display:block!important;width:100%!important;max-width:100%!important}
 #modal[data-type=customer] .test-row{width:100%!important;max-width:100%!important;overflow:hidden!important}
+[data-page="ai"] .ai-config-btn{display:none!important}
+[data-page="ai"] .ai-page-title h1,[data-page="ai"] .ai-page-title p,[data-page="ai"] .ai-hero b,[data-page="ai"] .ai-hero small,[data-page="ai"] .ai-panel h2,[data-page="ai"] .ai-panel p,[data-page="ai"] [class*="pill"] b,[data-page="ai"] [class*="pill"] small,[data-page="ai"] .ai-badge,#aiBtn{font-size:0!important;color:transparent!important;line-height:0!important}
+[data-page="ai"] .ai-page-title h1::after{content:"Báo cáo thông minh";font-size:21px!important;line-height:1.05!important;color:#082337!important}
+[data-page="ai"] .ai-page-title p::after{content:"Tạo báo cáo điều hành từ MCP, đơn hàng, test sản phẩm và báo cáo thị trường.";font-size:12px!important;line-height:1.25!important;color:#63727c!important}
+[data-page="ai"] .ai-hero b::after{content:"Tổng hợp dữ liệu bán hàng";font-size:17px!important;line-height:1.08!important;color:#fff!important}
+[data-page="ai"] .ai-hero small::after{content:"Hệ thống đọc dữ liệu đã nhập, rút ra điểm chính và đề xuất việc cần làm tiếp theo.";font-size:12px!important;line-height:1.25!important;color:rgba(255,255,255,.84)!important}
+[data-page="ai"] .ai-panel h2::after{content:"Báo cáo điều hành";font-size:15px!important;line-height:1.15!important;color:#082337!important}
+[data-page="ai"] #aiResult h2::after{content:"Kết quả phân tích"}
+[data-page="ai"] .ai-panel p::after{content:"Sau khi tạo xong, có thể chỉnh nội dung, lưu lại hoặc xuất TXT.";font-size:12px!important;line-height:1.35!important;color:#63727c!important}
+[data-page="ai"] #aiResult p::after{content:"Chưa có kết quả. Bấm ‘Tạo báo cáo’ để tổng hợp dữ liệu."}
+[data-page="ai"] [class*="pill"] b::after{content:"Dữ liệu sẵn sàng";font-size:13px!important;line-height:1.2!important;color:#082337!important}
+[data-page="ai"] [class*="pill"] small::after{content:"Tổng hợp khách cần xử lý, sản phẩm nổi bật, cơ hội và rủi ro.";font-size:11px!important;line-height:1.25!important;color:#63727c!important}
+[data-page="ai"] .ai-badge::after{content:"Sẵn sàng";font-size:10px!important;line-height:1!important;color:#007866!important}
+[data-page="ai"] #aiBtn::after{content:"Tạo báo cáo";font-size:16px!important;line-height:1!important;color:#fff!important}
+[data-page="ai"] .ai-metrics{display:none!important}
