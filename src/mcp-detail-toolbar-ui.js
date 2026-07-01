@@ -3,8 +3,8 @@
 
 const PAGE_SELECTOR = 'section.page[data-page="mcp"]';
 const PANEL_ID = 'mcpMoreFilterPanel';
-let lastSignature = '';
 let observer = null;
+let enhancing = false;
 
 function ensureStyle() {
   let style = document.querySelector('style[data-mcp-detail-toolbar-ui]');
@@ -15,36 +15,26 @@ function ensureStyle() {
   }
 
   style.textContent = `
-    ${PAGE_SELECTOR}.active{
-      scroll-padding-top:14px!important;
-    }
+    ${PAGE_SELECTOR}.active{scroll-padding-top:12px!important}
     ${PAGE_SELECTOR}.active .mcp-route-card{
-      position:relative!important;
-      top:auto!important;
-      z-index:1!important;
+      position:sticky!important;
+      top:8px!important;
+      z-index:8!important;
       margin:0 0 7px!important;
-      box-shadow:0 4px 12px rgba(15,118,110,.10)!important;
+      box-shadow:0 8px 20px rgba(15,118,110,.13)!important;
       transform:none!important;
       will-change:auto!important;
+      backface-visibility:hidden!important;
     }
-    ${PAGE_SELECTOR}.active .mcp-stats{
-      display:grid!important;
-      grid-template-columns:repeat(4,minmax(0,1fr))!important;
-      gap:7px!important;
-      margin:0 0 7px!important;
-    }
-    ${PAGE_SELECTOR}.active .mcp-stat{
-      min-width:0!important;
-      padding:8px 4px!important;
-      border-radius:12px!important;
-    }
+    ${PAGE_SELECTOR}.active .mcp-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:7px!important;margin:0 0 7px!important;position:relative!important;z-index:1!important}
+    ${PAGE_SELECTOR}.active .mcp-stat{min-width:0!important;padding:8px 4px!important;border-radius:12px!important}
     ${PAGE_SELECTOR}.active .mcp-stat b{font-size:16px!important;line-height:1!important}
     ${PAGE_SELECTOR}.active .mcp-stat span{font-size:9.5px!important;line-height:1.1!important;white-space:nowrap!important}
 
     ${PAGE_SELECTOR}.active .mcp-filters.mcp-detail-toolbar{
       position:relative!important;
       top:auto!important;
-      z-index:2!important;
+      z-index:3!important;
       display:grid!important;
       grid-template-columns:minmax(0,.98fr) minmax(0,.9fr) minmax(0,.78fr) minmax(0,.78fr)!important;
       gap:6px!important;
@@ -68,26 +58,14 @@ function ensureStyle() {
       overflow:hidden!important;
       text-overflow:ellipsis!important;
     }
-    ${PAGE_SELECTOR}.active .mcp-filters.mcp-detail-toolbar [data-mcp-filter="all"]{
-      background:#eafff9!important;
-      border-color:#b7efe2!important;
-      color:#087568!important;
-    }
-    ${PAGE_SELECTOR}.active [data-mcp-toolbar-toggle]{
-      border:1px solid #d7e5e2!important;
-      background:#fff!important;
-      color:#17343d!important;
-    }
-    ${PAGE_SELECTOR}.active [data-mcp-toolbar-toggle][aria-expanded="true"]{
-      background:#eef9f6!important;
-      border-color:#8fd9ce!important;
-      color:#087568!important;
-    }
+    ${PAGE_SELECTOR}.active .mcp-filters.mcp-detail-toolbar [data-mcp-filter="all"]{background:#eafff9!important;border-color:#b7efe2!important;color:#087568!important}
+    ${PAGE_SELECTOR}.active [data-mcp-toolbar-toggle]{border:1px solid #d7e5e2!important;background:#fff!important;color:#17343d!important}
+    ${PAGE_SELECTOR}.active [data-mcp-toolbar-toggle][aria-expanded="true"]{background:#eef9f6!important;border-color:#8fd9ce!important;color:#087568!important}
     ${PAGE_SELECTOR}.active .mcp-more-panel{
       display:none!important;
       position:relative!important;
       top:auto!important;
-      z-index:2!important;
+      z-index:3!important;
       margin:-1px 0 7px!important;
       padding:7px!important;
       border:1px solid #d7e5e2!important;
@@ -97,40 +75,10 @@ function ensureStyle() {
       backdrop-filter:none!important;
     }
     ${PAGE_SELECTOR}.active .mcp-more-panel.open{display:block!important}
-    ${PAGE_SELECTOR}.active .mcp-more-panel-inner{
-      display:grid!important;
-      grid-template-columns:repeat(3,minmax(0,1fr))!important;
-      gap:6px!important;
-    }
-    ${PAGE_SELECTOR}.active .mcp-more-panel .mcp-filter{
-      min-width:0!important;
-      min-height:34px!important;
-      padding:0 6px!important;
-      border-radius:12px!important;
-      font-size:11px!important;
-      font-weight:900!important;
-      white-space:nowrap!important;
-      overflow:hidden!important;
-      text-overflow:ellipsis!important;
-    }
-    ${PAGE_SELECTOR}.active .mcp-export-row{
-      display:grid!important;
-      grid-template-columns:repeat(3,minmax(0,1fr))!important;
-      gap:6px!important;
-      margin:0 0 8px!important;
-    }
-    ${PAGE_SELECTOR}.active .mcp-export-row button{
-      min-width:0!important;
-      min-height:34px!important;
-      padding:0 4px!important;
-      border-radius:13px!important;
-      font-size:10.5px!important;
-      line-height:1.05!important;
-      font-weight:900!important;
-      white-space:nowrap!important;
-      overflow:hidden!important;
-      text-overflow:ellipsis!important;
-    }
+    ${PAGE_SELECTOR}.active .mcp-more-panel-inner{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+    ${PAGE_SELECTOR}.active .mcp-more-panel .mcp-filter{min-width:0!important;min-height:34px!important;padding:0 6px!important;border-radius:12px!important;font-size:11px!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    ${PAGE_SELECTOR}.active .mcp-export-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:0 0 8px!important;position:relative!important;z-index:2!important}
+    ${PAGE_SELECTOR}.active .mcp-export-row button{min-width:0!important;min-height:34px!important;padding:0 4px!important;border-radius:13px!important;font-size:10.5px!important;line-height:1.05!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     @media(max-width:360px){
       ${PAGE_SELECTOR}.active .mcp-filters.mcp-detail-toolbar{gap:5px!important;grid-template-columns:minmax(0,1fr) minmax(0,.86fr) minmax(0,.72fr) minmax(0,.72fr)!important}
       ${PAGE_SELECTOR}.active .mcp-filters.mcp-detail-toolbar .mcp-filter,
@@ -158,9 +106,7 @@ function ensurePanel(page, filters) {
     panel.className = 'mcp-more-panel';
     panel.innerHTML = '<div class="mcp-more-panel-inner"></div>';
   }
-  if (!panel.querySelector('.mcp-more-panel-inner')) {
-    panel.innerHTML = '<div class="mcp-more-panel-inner"></div>';
-  }
+  if (!panel.querySelector('.mcp-more-panel-inner')) panel.innerHTML = '<div class="mcp-more-panel-inner"></div>';
   if (filters.nextElementSibling !== panel) filters.insertAdjacentElement('afterend', panel);
   return panel;
 }
@@ -179,16 +125,18 @@ function ensureToggle(filters) {
   return toggle;
 }
 
-function appendIfNeeded(parent, child) {
-  if (!parent || !child || child.parentElement === parent && child === parent.lastElementChild) return;
-  parent.appendChild(child);
-}
-
 function orderMainToolbar(filters, toggle) {
-  const add = filters.querySelector('[data-mcp-add-customer]');
-  const imp = filters.querySelector('[data-mcp-import-customers]');
-  const all = filters.querySelector('[data-mcp-filter="all"]');
-  [add, imp, all, toggle].filter(Boolean).forEach((button) => appendIfNeeded(filters, button));
+  const ordered = [
+    filters.querySelector('[data-mcp-add-customer]'),
+    filters.querySelector('[data-mcp-import-customers]'),
+    filters.querySelector('[data-mcp-filter="all"]'),
+    toggle
+  ].filter(Boolean);
+  ordered.forEach((button, index) => {
+    if (button.parentElement !== filters || filters.children[index] !== button) {
+      filters.insertBefore(button, filters.children[index] || null);
+    }
+  });
 }
 
 function refreshToggleLabel(toggle, panel) {
@@ -197,37 +145,29 @@ function refreshToggleLabel(toggle, panel) {
   if (toggle.textContent !== label) toggle.textContent = label;
 }
 
-function signature(filters) {
-  return Array.from(filters.querySelectorAll('button')).map((button) => [
-    button.dataset.mcpAddCustomer ? 'add' : '',
-    button.dataset.mcpImportCustomers ? 'import' : '',
-    button.dataset.mcpFilter || '',
-    button.dataset.mcpToolbarToggle ? 'toggle' : '',
-    button.classList.contains('active') ? 'active' : '',
-    button.parentElement?.id === PANEL_ID ? 'panel' : button.closest(`#${PANEL_ID}`) ? 'panel' : 'main'
-  ].join(':')).join('|');
-}
-
 function enhanceMcpToolbar() {
-  ensureStyle();
-  const page = document.querySelector(`${PAGE_SELECTOR}.active`);
-  const filters = page?.querySelector('.mcp-filters');
-  if (!page || !filters) return;
+  if (enhancing) return;
+  enhancing = true;
+  try {
+    ensureStyle();
+    const page = document.querySelector(`${PAGE_SELECTOR}.active`);
+    const filters = page?.querySelector('.mcp-filters');
+    if (!page || !filters) return;
 
-  const before = signature(filters);
-  filters.classList.add('mcp-detail-toolbar');
-  const panel = ensurePanel(page, filters);
-  const inner = panel.querySelector('.mcp-more-panel-inner');
-  const toggle = ensureToggle(filters);
+    filters.classList.add('mcp-detail-toolbar');
+    const panel = ensurePanel(page, filters);
+    const inner = panel.querySelector('.mcp-more-panel-inner');
+    const toggle = ensureToggle(filters);
 
-  Array.from(filters.querySelectorAll('button')).forEach((button) => {
-    if (!isKeepButton(button) && button.parentElement !== inner) inner.appendChild(button);
-  });
+    Array.from(filters.querySelectorAll('button')).forEach((button) => {
+      if (!isKeepButton(button) && button.parentElement !== inner) inner.appendChild(button);
+    });
 
-  orderMainToolbar(filters, toggle);
-  refreshToggleLabel(toggle, panel);
-  const after = signature(filters);
-  lastSignature = `${before}=>${after}`;
+    orderMainToolbar(filters, toggle);
+    refreshToggleLabel(toggle, panel);
+  } finally {
+    enhancing = false;
+  }
 }
 
 function setPanelOpen(open) {
@@ -248,6 +188,7 @@ function observeMcpPage() {
   const page = document.querySelector(PAGE_SELECTOR);
   if (!page || observer) return;
   observer = new MutationObserver((mutations) => {
+    if (enhancing) return;
     const relevant = mutations.some((mutation) => {
       if (mutation.type !== 'childList') return false;
       const target = mutation.target;
@@ -263,8 +204,7 @@ window.addEventListener('click', (event) => {
   if (toggle && toggle.closest(PAGE_SELECTOR)) {
     event.preventDefault();
     event.stopPropagation();
-    const open = toggle.getAttribute('aria-expanded') !== 'true';
-    setPanelOpen(open);
+    setPanelOpen(toggle.getAttribute('aria-expanded') !== 'true');
     return;
   }
 
