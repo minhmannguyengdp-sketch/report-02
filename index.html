@@ -16,7 +16,7 @@
 <div class="app">
   <header class="top">
     <div class="brand"><div class="logo">B</div><div><b>Bếp Sỉ Báo Cáo</b><small id="subtitle">Tạo dữ liệu</small></div></div>
-    <button class="sync-state" id="syncState" type="button"><span></span><b>Local</b></button>
+    <button class="sync-state" id="syncState" type="button"><span></span><b>Đồng bộ</b></button>
   </header>
   <main>
     <section class="page active" data-page="create">
@@ -26,7 +26,7 @@
         <button class="card home-card card-test" data-open-test><i>🧪</i><b>Test sản phẩm</b><small>Tạo file test và thêm khách.</small><em>Mở</em></button>
         <button class="card home-card card-report" data-page="report-shell"><i>📊</i><b>Báo cáo</b><small>Khung UI thị trường.</small><em>Xem UI</em></button>
       </div>
-      <section id="homeTodayDashboard" class="home-today-dashboard" aria-live="polite"><div><div class="home-today-head"><div><b>Hôm nay</b><small>Đang đọc dữ liệu local...</small></div><button class="home-today-refresh" type="button" data-home-today-refresh>↻</button></div><div class="home-today-grid"><article class="home-today-kpi"><span>MCP</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>Đơn</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>DT</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>Test</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>BC</span><b>-</b><small>hôm nay</small></article></div></div><div class="home-actions-panel"><div class="home-actions-title"><b>Cần xử lý</b><small>Đang tính...</small></div><div class="home-actions-list"></div></div><div class="home-extra-grid"><article class="home-extra-card"><div class="home-extra-title"><b>7 ngày</b><small>-</small></div></article><article class="home-extra-card"><div class="home-extra-title"><b>Dữ liệu</b><small>-</small></div></article></div></section>
+      <section id="homeTodayDashboard" class="home-today-dashboard" aria-live="polite"><div><div class="home-today-head"><div><b>Hôm nay</b><small>Đang đọc dữ liệu...</small></div><button class="home-today-refresh" type="button" data-home-today-refresh>↻</button></div><div class="home-today-grid"><article class="home-today-kpi"><span>MCP</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>Đơn</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>DT</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>Test</span><b>-</b><small>hôm nay</small></article><article class="home-today-kpi"><span>BC</span><b>-</b><small>hôm nay</small></article></div></div><div class="home-actions-panel"><div class="home-actions-title"><b>Cần xử lý</b><small>Đang tính...</small></div><div class="home-actions-list"></div></div><div class="home-extra-grid"><article class="home-extra-card"><div class="home-extra-title"><b>7 ngày</b><small>-</small></div></article><article class="home-extra-card"><div class="home-extra-title"><b>Dữ liệu</b><small>-</small></div></article></div></section>
       <section class="panel"><div class="head"><h2>Gần đây</h2><button data-page="data">Xem tất cả ›</button></div><div id="recent"></div></section>
     </section>
     <section class="page" data-page="data">
@@ -34,14 +34,15 @@
       <div id="dataHub" class="data-hub"><div class="data-hub-tabs"><button type="button" class="data-hub-tab" data-data-view="mcp"><i>🧭</i><span>MCP</span></button><button type="button" class="data-hub-tab" data-data-view="order"><i>🛒</i><span>Đơn</span></button><button type="button" class="data-hub-tab active" data-data-view="test"><i>🧪</i><span>Test</span></button><button type="button" class="data-hub-tab" data-data-view="report"><i>📊</i><span>Báo cáo</span></button></div><div id="dataShell" class="data-shell"></div></div>
       <div class="data-list-wrap"><div id="dataList"></div></div>
     </section>
-    <section class="page" data-page="ai"><h1>AI tổng hợp</h1><section class="panel"><h2>Dữ liệu sẽ phân tích</h2><div class="metrics" id="aiMetrics"></div><button class="primary wide" id="aiBtn">Tạo báo cáo AI thật</button></section><section class="panel" id="aiResult"><p class="empty">AI chỉ chạy khi backend agent đã cấu hình.</p></section></section>
-    <section class="page" data-page="admin"><h1>Admin</h1><article class="admin"><div><b>Supabase</b><br><small id="dbInfo">Đang kiểm tra...</small></div><button class="secondary" id="syncBtn">Đồng bộ</button></article><article class="admin"><div><b>Dữ liệu máy</b><br><small id="adminStats">-</small></div></article><article class="warn">Supabase lấy từ Vercel env. Local DB chỉ là cache và hàng đợi offline.</article></section>
+    <section class="page" data-page="ai"><h1>Báo cáo thông minh</h1><section class="panel"><h2>Dữ liệu sẽ phân tích</h2><div class="metrics" id="aiMetrics"></div><button class="primary wide" id="aiBtn">Tạo báo cáo</button></section><section class="panel" id="aiResult"><p class="empty">Sẵn sàng tạo báo cáo từ dữ liệu đã nhập.</p></section></section>
+    <section class="page" data-page="admin"><h1>Admin</h1><article class="admin"><div><b>Kết nối dữ liệu</b><br><small id="dbInfo">Đang kiểm tra...</small></div><button class="secondary" id="syncBtn">Đồng bộ</button></article><article class="admin"><div><b>Dữ liệu máy</b><br><small id="adminStats">-</small></div></article><article class="warn">Dữ liệu được lưu trên hệ thống và có thể dùng khi mất mạng.</article></section>
   </main>
   <nav class="nav"><button class="active" data-page="create">⌂<span>Home</span></button><button data-page="data">▤<span>Dữ liệu</span></button><button data-page="ai">✺<span>AI</span></button><button data-page="admin">⚙<span>Admin</span></button></nav>
   <dialog id="modal"></dialog><div class="toast" id="toast"></div>
 </div>
 <script type="module" src="src/ai-ui-owner.js?v=adk-report-agent-ui-2"></script>
 <script type="module" src="src/ui-polish.js?v=stable-ui-v128-adk-report-agent-ui-2"></script>
+<script type="module" src="src/smart-report-page.js?v=smart-report-page-1"></script>
 <script type="module" src="src/home-active-fix.js?v=home-active-fix-1"></script>
 <script type="module" src="test-first-app.js"></script>
 </body>
