@@ -3,6 +3,8 @@
 
 const PAGE_SELECTOR = 'section.page[data-page="mcp"]';
 const PANEL_ID = 'mcpMoreFilterPanel';
+let lastSignature = '';
+let observer = null;
 
 function ensureStyle() {
   let style = document.querySelector('style[data-mcp-detail-toolbar-ui]');
@@ -14,15 +16,16 @@ function ensureStyle() {
 
   style.textContent = `
     ${PAGE_SELECTOR}.active{
-      scroll-padding-top:86px!important;
+      scroll-padding-top:14px!important;
     }
     ${PAGE_SELECTOR}.active .mcp-route-card{
-      position:sticky!important;
-      top:0!important;
-      z-index:30!important;
+      position:relative!important;
+      top:auto!important;
+      z-index:1!important;
       margin:0 0 7px!important;
-      box-shadow:0 8px 18px rgba(15,118,110,.18)!important;
-      transform:translateZ(0)!important;
+      box-shadow:0 4px 12px rgba(15,118,110,.10)!important;
+      transform:none!important;
+      will-change:auto!important;
     }
     ${PAGE_SELECTOR}.active .mcp-stats{
       display:grid!important;
@@ -41,7 +44,7 @@ function ensureStyle() {
     ${PAGE_SELECTOR}.active .mcp-filters.mcp-detail-toolbar{
       position:relative!important;
       top:auto!important;
-      z-index:18!important;
+      z-index:2!important;
       display:grid!important;
       grid-template-columns:minmax(0,.98fr) minmax(0,.9fr) minmax(0,.78fr) minmax(0,.78fr)!important;
       gap:6px!important;
@@ -82,16 +85,16 @@ function ensureStyle() {
     }
     ${PAGE_SELECTOR}.active .mcp-more-panel{
       display:none!important;
-      position:sticky!important;
-      top:64px!important;
-      z-index:22!important;
+      position:relative!important;
+      top:auto!important;
+      z-index:2!important;
       margin:-1px 0 7px!important;
       padding:7px!important;
       border:1px solid #d7e5e2!important;
       border-radius:16px!important;
-      background:rgba(255,255,255,.98)!important;
-      box-shadow:0 12px 26px rgba(15,23,42,.12)!important;
-      backdrop-filter:blur(10px)!important;
+      background:#fff!important;
+      box-shadow:0 8px 18px rgba(15,23,42,.10)!important;
+      backdrop-filter:none!important;
     }
     ${PAGE_SELECTOR}.active .mcp-more-panel.open{display:block!important}
     ${PAGE_SELECTOR}.active .mcp-more-panel-inner{
@@ -176,16 +179,33 @@ function ensureToggle(filters) {
   return toggle;
 }
 
+function appendIfNeeded(parent, child) {
+  if (!parent || !child || child.parentElement === parent && child === parent.lastElementChild) return;
+  parent.appendChild(child);
+}
+
 function orderMainToolbar(filters, toggle) {
   const add = filters.querySelector('[data-mcp-add-customer]');
   const imp = filters.querySelector('[data-mcp-import-customers]');
   const all = filters.querySelector('[data-mcp-filter="all"]');
-  [add, imp, all, toggle].filter(Boolean).forEach((button) => filters.appendChild(button));
+  [add, imp, all, toggle].filter(Boolean).forEach((button) => appendIfNeeded(filters, button));
 }
 
 function refreshToggleLabel(toggle, panel) {
   const active = panel.querySelector('.mcp-filter.active:not([data-mcp-filter="all"])');
-  toggle.textContent = active ? `Lọc: ${active.textContent.trim()}` : 'Chọn';
+  const label = active ? `Lọc: ${active.textContent.trim()}` : 'Chọn';
+  if (toggle.textContent !== label) toggle.textContent = label;
+}
+
+function signature(filters) {
+  return Array.from(filters.querySelectorAll('button')).map((button) => [
+    button.dataset.mcpAddCustomer ? 'add' : '',
+    button.dataset.mcpImportCustomers ? 'import' : '',
+    button.dataset.mcpFilter || '',
+    button.dataset.mcpToolbarToggle ? 'toggle' : '',
+    button.classList.contains('active') ? 'active' : '',
+    button.parentElement?.id === PANEL_ID ? 'panel' : button.closest(`#${PANEL_ID}`) ? 'panel' : 'main'
+  ].join(':')).join('|');
 }
 
 function enhanceMcpToolbar() {
@@ -194,17 +214,20 @@ function enhanceMcpToolbar() {
   const filters = page?.querySelector('.mcp-filters');
   if (!page || !filters) return;
 
+  const before = signature(filters);
   filters.classList.add('mcp-detail-toolbar');
   const panel = ensurePanel(page, filters);
   const inner = panel.querySelector('.mcp-more-panel-inner');
   const toggle = ensureToggle(filters);
 
   Array.from(filters.querySelectorAll('button')).forEach((button) => {
-    if (!isKeepButton(button)) inner.appendChild(button);
+    if (!isKeepButton(button) && button.parentElement !== inner) inner.appendChild(button);
   });
 
   orderMainToolbar(filters, toggle);
   refreshToggleLabel(toggle, panel);
+  const after = signature(filters);
+  lastSignature = `${before}=>${after}`;
 }
 
 function setPanelOpen(open) {
@@ -216,9 +239,23 @@ function setPanelOpen(open) {
   toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
-function scheduleEnhance(delay = 60) {
+function scheduleEnhance(delay = 80) {
   clearTimeout(scheduleEnhance.timer);
   scheduleEnhance.timer = setTimeout(enhanceMcpToolbar, delay);
+}
+
+function observeMcpPage() {
+  const page = document.querySelector(PAGE_SELECTOR);
+  if (!page || observer) return;
+  observer = new MutationObserver((mutations) => {
+    const relevant = mutations.some((mutation) => {
+      if (mutation.type !== 'childList') return false;
+      const target = mutation.target;
+      return target === page || target.classList?.contains('mcp-list-wrap') || target.classList?.contains('mcp-filters');
+    });
+    if (relevant) scheduleEnhance(120);
+  });
+  observer.observe(page, { childList: true, subtree: true });
 }
 
 window.addEventListener('click', (event) => {
@@ -235,12 +272,11 @@ window.addEventListener('click', (event) => {
   if (panelButton) setPanelOpen(false);
   else if (!event.target.closest(`#${PANEL_ID}`) && !event.target.closest('[data-mcp-toolbar-toggle]')) setPanelOpen(false);
 
-  scheduleEnhance(120);
+  scheduleEnhance(160);
 }, true);
 
-window.addEventListener('DOMContentLoaded', () => scheduleEnhance(0));
-window.addEventListener('mcp:session-changed', () => scheduleEnhance(80));
-window.addEventListener('hashchange', () => scheduleEnhance(80));
-const observer = new MutationObserver(() => scheduleEnhance(80));
-observer.observe(document.documentElement, { childList: true, subtree: true });
+window.addEventListener('DOMContentLoaded', () => { observeMcpPage(); scheduleEnhance(0); });
+window.addEventListener('mcp:session-changed', () => { observeMcpPage(); scheduleEnhance(100); });
+window.addEventListener('hashchange', () => scheduleEnhance(100));
+observeMcpPage();
 scheduleEnhance(0);
