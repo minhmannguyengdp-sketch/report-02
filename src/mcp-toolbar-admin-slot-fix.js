@@ -39,8 +39,10 @@ function moveAdminButton() {
   const page = document.querySelector(`${PAGE_SELECTOR}.active`);
   if (!page) return;
   const panelInner = page.querySelector(PANEL_SELECTOR);
-  const button = page.querySelector('[data-mcp-route-admin]');
-  if (!button || !panelInner) return;
+  const buttons = [...page.querySelectorAll('[data-mcp-route-admin]')];
+  if (!buttons.length || !panelInner) return;
+  const button = buttons[0];
+  buttons.slice(1).forEach((duplicate) => duplicate.remove());
   if (button.textContent.trim() !== 'Quản trị') button.textContent = 'Quản trị';
   if (button.parentElement !== panelInner) panelInner.appendChild(button);
 }
@@ -54,5 +56,5 @@ installStyle();
 window.addEventListener('DOMContentLoaded', () => schedule(0));
 window.addEventListener('mcp:session-changed', () => schedule(140));
 document.addEventListener('click', () => schedule(140), true);
-setInterval(() => schedule(0), 1800);
+setInterval(() => schedule(0), 1200);
 schedule(0);
