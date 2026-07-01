@@ -44,8 +44,10 @@ dialog{width:min(400px,calc(100vw - 18px))!important;max-height:calc(100dvh - 18
 [data-page="ai"] .ai-hero small::after{content:"Hệ thống đọc dữ liệu đã nhập, rút ra điểm chính và đề xuất việc cần làm tiếp theo.";font-size:12px!important;line-height:1.25!important;color:rgba(255,255,255,.84)!important}
 [data-page="ai"] .ai-panel h2::after{content:"Báo cáo điều hành";font-size:15px!important;line-height:1.15!important;color:#082337!important}
 [data-page="ai"] #aiResult h2::after{content:"Kết quả phân tích"}
+[data-page="ai"] #smartReportSaved h2::after{content:"Báo cáo đã lưu"}
 [data-page="ai"] .ai-panel p::after{content:"Sau khi tạo xong, có thể chỉnh nội dung, lưu lại hoặc xuất TXT.";font-size:12px!important;line-height:1.35!important;color:#63727c!important}
 [data-page="ai"] #aiResult p::after{content:"Chưa có kết quả. Bấm ‘Tạo báo cáo’ để tổng hợp dữ liệu."}
+[data-page="ai"] #smartReportSaved p::after{content:"Chưa có báo cáo đã lưu."}
 [data-page="ai"] [class*="pill"] b::after{content:"Dữ liệu sẵn sàng";font-size:13px!important;line-height:1.2!important;color:#082337!important}
 [data-page="ai"] [class*="pill"] small::after{content:"Tổng hợp khách cần xử lý, sản phẩm nổi bật, cơ hội và rủi ro.";font-size:11px!important;line-height:1.25!important;color:#63727c!important}
 [data-page="ai"] .ai-badge::after{content:"Sẵn sàng";font-size:10px!important;line-height:1!important;color:#007866!important}
