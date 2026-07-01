@@ -16,7 +16,21 @@ function formatMoney(value = 0) {
   return amount ? `${money.format(amount)}đ` : '0đ';
 }
 
+function installOrderFilterLayout() {
+  let style = document.querySelector('style[data-order-filter-layout]');
+  if (!style) {
+    style = document.createElement('style');
+    style.dataset.orderFilterLayout = '1';
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+    section.page[data-page="data"] .order-filter-grid label:nth-child(2){grid-column:auto!important}
+    section.page[data-page="data"] .order-filter-grid label:nth-child(3){grid-column:1/-1!important}
+  `;
+}
+
 async function enhanceOrderDataHub() {
+  installOrderFilterLayout();
   const shell = document.querySelector('#dataShell.active');
   const activeOrderTab = document.querySelector('#dataHub [data-data-view="order"].active');
   if (!shell || !activeOrderTab) return;
