@@ -64,7 +64,7 @@ import './sync-delete-guard.js?v=sync-delete-guard-1';
 import './pwa-install-ui.js?v=pwa-install-1';
 
 // AI ownership: AI page/settings adapter loads after sync to preserve current behavior.
-import './ai-ui-owner.js?v=ai-ui-owner-2';
+import './ai-ui-owner.js?v=ai-real-agent-1';
 
 function homeGrid(){
   return document.querySelector('section.page[data-page="create"] .grid-actions');
