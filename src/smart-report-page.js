@@ -1,5 +1,6 @@
 import './smart-report-flow.js?v=smart-report-flow-1';
 import './smart-report-select-flow.js?v=smart-report-select-flow-5-5';
+import './smart-report-select-mobile-flow.js?v=smart-report-mobile-picker-1';
 import './smart-report-select-layout-fix.js?v=smart-report-select-layout-fix-2';
 import './copy-clean.js?v=copy-clean-1';
 
